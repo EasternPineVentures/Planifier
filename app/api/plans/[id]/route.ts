@@ -36,6 +36,7 @@ const JournalSchema = z.object({
   outcome: z.enum(["win", "loss", "scratch", "skipped"]).optional(),
   followedChecklist: z.enum(["yes", "partial", "no"]).optional(),
   hitInvalidation: z.enum(["yes", "no", "na"]).optional(),
+  vsPlan: z.string().max(500).optional(),
   notes: z.string().max(4000).optional(),
 });
 
@@ -69,6 +70,7 @@ export async function POST(req: Request, ctx: Ctx) {
       outcome: parsed.data.outcome ?? null,
       followedChecklist: parsed.data.followedChecklist ?? null,
       hitInvalidation: parsed.data.hitInvalidation ?? null,
+      vsPlan: parsed.data.vsPlan ?? null,
       notes: parsed.data.notes ?? null,
     })
     .returning();

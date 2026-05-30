@@ -1,6 +1,6 @@
-import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { pickModel } from "@/lib/ai/router";
 import { getRuntimeSystemPrompt } from "@/lib/prompts";
 import {
   validateInputs,
@@ -11,6 +11,7 @@ import { PlanSchema } from "@/lib/plan/schema";
 import { planError } from "@/lib/plan/errors";
 import { requireUserId } from "@/lib/db/users";
 import { db, schema } from "@/lib/db/client";
+import { buildSourceLinks } from "@/lib/sources/sourceLinks";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
   ];
   if (imageDataUrl) userContent.push({ type: "image", image: imageDataUrl });
 
-  const model = openai(process.env.PLANIFIER_MODEL || "gpt-4o");
+  const { model } = pickModel({ task: "plan", needsVision: !!imageDataUrl });
 
   let plan;
   try {
@@ -96,7 +97,14 @@ export async function POST(req: Request) {
       messages: [{ role: "user", content: userContent }],
       temperature: 0.3,
     });
-    plan = result.object;
+    const sourceLinks = buildSourceLinks({
+      assetTicker: inputs.ticker,
+    });
+    plan = {
+      ...result.object,
+      // App-generated deterministic links; never model-invented.
+      trustedSourceLinks: sourceLinks,
+    };
   } catch (err) {
     console.error("[planifier] generateObject failed", err);
     return Response.json(planError("AI_SCHEMA_FAILURE"), { status: 502 });

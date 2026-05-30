@@ -52,6 +52,7 @@ export const journalEntries = pgTable(
     outcome: text("outcome"), // "win" | "loss" | "scratch" | "skipped"
     followedChecklist: text("followed_checklist"), // "yes" | "partial" | "no"
     hitInvalidation: text("hit_invalidation"), // "yes" | "no" | "na"
+    vsPlan: text("vs_plan"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

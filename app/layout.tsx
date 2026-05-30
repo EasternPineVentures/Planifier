@@ -9,6 +9,14 @@ export const metadata: Metadata = {
   title: "Planifier — Trading Planning Assistant",
   description:
     "Turn confusing charts into structured plans. Not financial advice. Educational and paper-trading only.",
+  applicationName: "Planifier",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#0B0F14",
+  appleWebApp: {
+    capable: true,
+    title: "Planifier",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

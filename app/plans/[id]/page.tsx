@@ -28,6 +28,9 @@ export default async function PlanDetail({ params }: Props) {
     .where(eq(schema.journalEntries.planId, id))
     .orderBy(asc(schema.journalEntries.createdAt));
 
+  const plan = row.plan as Plan;
+  const strategyRules = plan.strategyNotes?.rules ?? [];
+
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-4 px-4 py-6">
       <Nav />
@@ -41,14 +44,19 @@ export default async function PlanDetail({ params }: Props) {
         </span>
       </header>
 
-      <PlanView plan={row.plan as Plan} />
+      <PlanView plan={plan} />
 
       <section className="rounded border border-border bg-panel p-3">
         <h3 className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted">
           Journal entries
         </h3>
         {journal.length === 0 ? (
-          <p className="text-xs text-muted">No entries yet.</p>
+          <div className="space-y-1 text-xs text-muted">
+            <p>No journal entries yet.</p>
+            <p>
+              After the plan plays out, write down what happened and whether you followed your own rules.
+            </p>
+          </div>
         ) : (
           <ul className="space-y-2">
             {journal.map((j) => (
@@ -63,13 +71,21 @@ export default async function PlanDetail({ params }: Props) {
                     <span>invalidation hit: {j.hitInvalidation}</span>
                   )}
                 </div>
+                {j.vsPlan && (
+                  <p className="mb-1 text-muted">
+                    <span className="font-mono text-[10px] uppercase tracking-wider">
+                      vs. plan:
+                    </span>{" "}
+                    {j.vsPlan}
+                  </p>
+                )}
                 {j.notes && <p className="whitespace-pre-wrap">{j.notes}</p>}
               </li>
             ))}
           </ul>
         )}
         <div className="mt-4 border-t border-border pt-3">
-          <JournalForm planId={id} />
+          <JournalForm planId={id} strategyRules={strategyRules} />
         </div>
       </section>
     </main>

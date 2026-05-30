@@ -10,7 +10,8 @@ export default function Nav() {
         planifier<span className="text-accent">.</span>
       </Link>
       <div className="flex flex-1 gap-3 text-sm text-muted">
-        <Link href="/" className="hover:text-ink">Plan</Link>
+        <Link href="/" className="hover:text-ink">Home</Link>
+        <Link href="/plan/new" className="hover:text-ink">Build</Link>
         <Link href="/plans" className="hover:text-ink">My plans</Link>
       </div>
       <span className="rounded border border-border px-2 py-1 font-mono text-[10px] uppercase text-muted">

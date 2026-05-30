@@ -1,5 +1,5 @@
-import { openai } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
+import { pickModel } from "@/lib/ai/router";
 import { getRuntimeSystemPrompt } from "@/lib/prompts";
 import {
   validateInputs,
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     };
   });
 
-  const model = openai(process.env.PLANIFIER_MODEL || "gpt-4o");
+  const { model } = pickModel({ task: "chat", needsVision: !!imageDataUrl });
 
   const result = streamText({
     model,

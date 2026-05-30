@@ -9,6 +9,8 @@ beforeEach(() => {
   vi.resetModules();
   // Strip env so each test sets exactly what it needs.
   delete process.env.OPENAI_API_KEY;
+  delete process.env.HF_TOKEN;
+  delete process.env.HUGGINGFACE_API_KEY;
   delete process.env.DATABASE_URL;
   delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   delete process.env.CLERK_SECRET_KEY;
@@ -33,6 +35,7 @@ describe("/api/health response shape", () => {
     expect(body.app).toBe("planifier");
     expect(typeof body.timestamp).toBe("string");
     expect(body.openai).toBe("missing");
+    expect(body.ai.huggingface).toBe("missing");
     expect(body.auth).toBe("missing");
     expect(body.database).toBe("not_configured");
     expect(body.ok).toBe(false);
@@ -60,6 +63,26 @@ describe("/api/health response shape", () => {
     expect(body.database).toBe("connected");
     expect(body.auth).toBe("configured");
     expect(body.openai).toBe("configured");
+    expect(body.ai.huggingface).toBe("missing");
+  });
+
+  it("reports huggingface configured when HF_TOKEN is present", async () => {
+    process.env.HF_TOKEN = "hf_test";
+    process.env.DATABASE_URL = "postgresql://x:y@host/db";
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test";
+    process.env.CLERK_SECRET_KEY = "sk_test";
+
+    vi.doMock("@neondatabase/serverless", () => ({
+      neon: () => async () => [{ ok: 1 }],
+    }));
+
+    const { GET } = await import("@/app/api/health/route");
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ai.huggingface).toBe("configured");
+    expect(body.ai.anyConfigured).toBe(true);
+    expect(body.ok).toBe(true);
   });
 
   it("returns 500 when DB query fails", async () => {

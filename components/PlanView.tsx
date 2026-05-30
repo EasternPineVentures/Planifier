@@ -1,6 +1,8 @@
 "use client";
 
+import { useId, useState } from "react";
 import type { Plan } from "@/lib/plan/schema";
+import TrustedSourceLinks from "@/components/TrustedSourceLinks";
 
 export default function PlanView({
   plan,
@@ -9,11 +11,27 @@ export default function PlanView({
   plan: Plan;
   planId?: string;
 }) {
+  const rules = plan.strategyNotes?.rules ?? [];
+
   return (
     <div className="space-y-4 text-sm">
-      <Section title="Disclaimer">
+      {rules.length > 0 && (
+        <PlanSection
+          title="Pre-trade checklist"
+          summary="Your rules before action"
+          defaultOpen
+          accent
+        >
+          <div className="text-sm">{rules.join(" ; ")}</div>
+        </PlanSection>
+      )}
+
+      <PlanSection
+        title="Disclaimer"
+        summary="Educational planning only"
+      >
         <p className="text-muted">{plan.disclaimer}</p>
-      </Section>
+      </PlanSection>
 
       {plan.timeframeMismatchWarning && (
         <div className="rounded border border-danger/50 bg-danger/10 p-3 text-danger">
@@ -21,15 +39,18 @@ export default function PlanView({
         </div>
       )}
 
-      <Section title="1. Risk notes">
+      <PlanSection title="1. Risk notes" summary={`${plan.riskNotes.length} risk notes`}>
         <ul className="list-disc space-y-1 pl-5">
           {plan.riskNotes.map((r, i) => (
             <li key={i}>{r}</li>
           ))}
         </ul>
-      </Section>
+      </PlanSection>
 
-      <Section title="2. Invalidation">
+      <PlanSection
+        title="2. Invalidation"
+        summary={plan.invalidation.price ? "Price + condition" : "Condition-based"}
+      >
         <div className="rounded border border-accent/40 bg-accent/5 p-3">
           {plan.invalidation.price && (
             <div className="font-mono text-base text-accent">
@@ -38,18 +59,17 @@ export default function PlanView({
           )}
           <div className="text-muted">{plan.invalidation.condition}</div>
         </div>
-      </Section>
+      </PlanSection>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Section title="3. Bullish scenario">
-          <p>{plan.bullishScenario}</p>
-        </Section>
-        <Section title="4. Bearish scenario">
-          <p>{plan.bearishScenario}</p>
-        </Section>
-      </div>
+      <PlanSection title="3. Bullish scenario">
+        <p>{plan.bullishScenario}</p>
+      </PlanSection>
 
-      <Section title="5. Example plan">
+      <PlanSection title="4. Bearish scenario">
+        <p>{plan.bearishScenario}</p>
+      </PlanSection>
+
+      <PlanSection title="5. Example plan">
         <div className="space-y-2">
           <Row k="Direction" v={plan.examplePlan.direction} />
           <Row k="Entry trigger" v={plan.examplePlan.entryTrigger} />
@@ -64,9 +84,9 @@ export default function PlanView({
           </div>
           <Row k="Sizing note" v={plan.examplePlan.positionSizingNote} />
         </div>
-      </Section>
+      </PlanSection>
 
-      <Section title="6. Decision checklist">
+      <PlanSection title="6. Decision checklist">
         <ul className="space-y-1">
           {plan.decisionChecklist.map((c, i) => (
             <li key={i} className="flex gap-2">
@@ -75,20 +95,84 @@ export default function PlanView({
             </li>
           ))}
         </ul>
-      </Section>
+      </PlanSection>
 
-      <Section title="7. Journal prompt">
+      <PlanSection title="7. Journal prompt">
         <p className="italic">{plan.journalPrompt}</p>
-      </Section>
+      </PlanSection>
+
+      <PlanSection
+        title="8. Trusted source links"
+        summary={`${(plan.trustedSourceLinks ?? []).length} research links`}
+      >
+        <TrustedSourceLinks links={plan.trustedSourceLinks ?? []} />
+      </PlanSection>
 
       {plan.cognitiveBiases && plan.cognitiveBiases.length > 0 && (
-        <Section title="What you probably want to ignore">
+        <PlanSection title="What you probably want to ignore">
           <ul className="list-disc space-y-1 pl-5 text-muted">
             {plan.cognitiveBiases.map((b, i) => (
               <li key={i}>{b}</li>
             ))}
           </ul>
-        </Section>
+        </PlanSection>
+      )}
+
+      {plan.strategyNotes ? (
+        <PlanSection
+          title="Strategy notes"
+          summary="How your setup translates into rules"
+          defaultOpen
+        >
+          <div className="space-y-3">
+            <div>
+              <div className="text-xs uppercase text-muted">Plain English</div>
+              <p>{plan.strategyNotes.plainEnglish}</p>
+            </div>
+            <div>
+              <div className="text-xs uppercase text-muted">Actionable version</div>
+              <p className="italic">{plan.strategyNotes.actionableVersion}</p>
+            </div>
+            {plan.strategyNotes.learningExample && (
+              <div>
+                <div className="text-xs uppercase text-muted">Example</div>
+                <p>{plan.strategyNotes.learningExample}</p>
+              </div>
+            )}
+            <div>
+              <div className="text-xs uppercase text-muted">Rules</div>
+              <ul className="list-disc pl-5">
+                {(plan.strategyNotes.rules ?? []).map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="text-xs uppercase text-muted">Avoid</div>
+              <ul className="list-disc pl-5">
+                {(plan.strategyNotes.avoid ?? []).map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+            {(plan.strategyNotes.missingPieces ?? []).length > 0 && (
+              <div className="rounded border border-danger/40 bg-danger/10 p-2">
+                <div className="text-xs uppercase text-danger">Missing pieces</div>
+                <ul className="list-disc pl-5">
+                  {plan.strategyNotes.missingPieces.map((m, i) => (
+                    <li key={i}>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </PlanSection>
+      ) : (
+        <PlanSection title="Strategy notes" defaultOpen>
+          <p className="text-muted italic">
+            Strategy Notes unavailable for this older plan.
+          </p>
+        </PlanSection>
       )}
 
       {planId && (
@@ -103,13 +187,51 @@ export default function PlanView({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function PlanSection({
+  title,
+  summary,
+  defaultOpen = false,
+  accent = false,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  accent?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
+
   return (
-    <section className="rounded border border-border bg-panel p-3">
-      <h3 className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted">
-        {title}
-      </h3>
-      {children}
+    <section
+      className={`rounded border ${
+        accent ? "border-accent/60 bg-accent/10" : "border-border bg-panel"
+      }`}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={contentId}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 rounded px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      >
+        <div>
+          <h3 className="font-mono text-[11px] uppercase tracking-wider text-muted">
+            {title}
+          </h3>
+          {summary && <p className="mt-1 text-xs text-muted">{summary}</p>}
+        </div>
+        <span className="text-xs text-muted" aria-hidden="true">
+          {open ? "Hide" : "Show"}
+        </span>
+      </button>
+
+      {open && (
+        <div id={contentId} className="border-t border-border/70 px-3 pb-3 pt-2">
+          {children}
+        </div>
+      )}
     </section>
   );
 }

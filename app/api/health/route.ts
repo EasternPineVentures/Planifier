@@ -14,6 +14,14 @@ type HealthResponse = {
   database: DbStatus;
   auth: Status;
   openai: Status;
+  ai: {
+    anthropic: Status;
+    blackbox: Status;
+    openai: Status;
+    huggingface: Status;
+    mode: string;
+    anyConfigured: boolean;
+  };
 };
 
 function present(v: string | undefined): Status {
@@ -24,6 +32,23 @@ export async function GET() {
   const timestamp = new Date().toISOString();
 
   const openai = present(process.env.OPENAI_API_KEY);
+  const anthropic: Status =
+    present(process.env.ANTHROPIC_API_KEY) === "configured" ||
+    present(process.env.ANTHROPIC_API_KEY_V2) === "configured"
+      ? "configured"
+      : "missing";
+  const blackbox = present(process.env.BLACKBOX_API_KEY);
+  const huggingface: Status =
+    present(process.env.HF_TOKEN) === "configured" ||
+    present(process.env.HUGGINGFACE_API_KEY) === "configured"
+      ? "configured"
+      : "missing";
+  const anyAi =
+    openai === "configured" ||
+    anthropic === "configured" ||
+    blackbox === "configured" ||
+    huggingface === "configured";
+
   const dbVar = present(process.env.DATABASE_URL);
   const clerkPub = present(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
   const clerkSecret = present(process.env.CLERK_SECRET_KEY);
@@ -46,7 +71,7 @@ export async function GET() {
   const ok =
     database === "connected" &&
     auth === "configured" &&
-    openai === "configured";
+    anyAi;
 
   const body: HealthResponse = {
     ok,
@@ -55,6 +80,14 @@ export async function GET() {
     database,
     auth,
     openai,
+    ai: {
+      anthropic,
+      blackbox,
+      openai,
+      huggingface,
+      mode: process.env.PLANIFIER_MODEL?.trim() || "auto",
+      anyConfigured: anyAi,
+    },
   };
 
   // 500 only when the DB check actively fails (per spec).

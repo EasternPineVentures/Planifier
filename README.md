@@ -87,12 +87,28 @@ Open http://localhost:3000. You'll be redirected to `/sign-in`.
 
 ## Environment variables
 
-- `OPENAI_API_KEY` — required
+- At least one AI provider key is required: `ANTHROPIC_API_KEY`, `BLACKBOX_API_KEY`, `OPENAI_API_KEY`, or `HF_TOKEN`
 - `PLANIFIER_MODEL` — optional, default `gpt-4o` (needs multimodal for image input)
 - `DATABASE_URL` — Neon Postgres connection string
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` — from Clerk dashboard
 - `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
 - `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+- `HF_TOKEN` — optional Hugging Face token (canonical)
+- `HUGGINGFACE_API_KEY` — optional alias fallback for `HF_TOKEN`
+- `HUGGINGFACE_CHAT_MODEL` / `HUGGINGFACE_PLAN_MODEL` — optional Hugging Face model overrides
+
+## Hugging Face Provider
+
+Planifier can optionally use Hugging Face Inference Providers as an experimental model lane.
+
+Set:
+
+```text
+HF_TOKEN=
+HUGGINGFACE_CHAT_MODEL=
+```
+
+Hugging Face is not the default plan-generation provider yet. Structured plan generation should remain on the most reliable configured provider until specific Hugging Face models are tested for schema reliability and vision support.
 
 ## Deploy to Vercel
 
@@ -156,8 +172,45 @@ A healthy deployment should return:
   "app": "planifier",
   "database": "connected",
   "auth": "configured",
-  "openai": "configured"
+  "openai": "configured",
+  "ai": {
+    "anthropic": "configured",
+    "blackbox": "missing",
+    "openai": "configured",
+    "huggingface": "missing",
+    "mode": "auto",
+    "anyConfigured": true
+  }
 }
 ```
 
-This endpoint confirms that the app is running, required environment variables are configured, and the database connection works. It never exposes secret values.
+This endpoint confirms the app is running, database connectivity, auth configuration, and AI provider configuration. It does not expose secret values.
+
+## Trusted Source Links
+
+Planifier includes research links with generated plans so users can verify chart context and asset information outside the AI response.
+
+Depending on asset type, Planifier may link to:
+- TradingView for charts and market pages
+- CoinGecko for crypto market data
+- CoinMarketCap for crypto market data
+- Nasdaq for stock quote and company market pages
+- SEC EDGAR for official U.S. company filings
+
+These links are for research and verification. Planifier does not guarantee that third-party pages are complete, current, or appropriate for every asset.
+
+## Teach by Example
+
+Planifier uses short educational examples to help users turn vague ideas into clear, repeatable trading logic.
+
+The goal is not to shame users for missing details. The goal is to show what stronger planning looks like.
+
+Planifier may be direct when a plan is incomplete, but it should remain respectful. Anyone using the app is already trying to learn, and that effort matters.
+
+## Mobile / PWA
+
+Planifier is designed mobile-first as a responsive web app.
+
+The app includes a basic web app manifest so it can begin supporting install-like mobile workflows. Full offline support is not included yet.
+
+Production app icons should be added before serious install testing.
