@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { background: #0a0a0b; color: #e7e7ea; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+.prose-planifier h1, .prose-planifier h2, .prose-planifier h3 {
+  color: #e7e7ea; font-weight: 600; margin-top: 1rem;
+}
+.prose-planifier p { margin: 0.5rem 0; line-height: 1.55; }
+.prose-planifier ul { margin: 0.5rem 0; padding-left: 1.25rem; list-style: disc; }
+.prose-planifier ol { margin: 0.5rem 0; padding-left: 1.25rem; list-style: decimal; }
+.prose-planifier code { background: #1f1f23; padding: 0 0.25rem; border-radius: 3px; }
+.prose-planifier blockquote {
+  border-left: 3px solid #d4ff3a; padding-left: 0.75rem; color: #c9c9d0; margin: 0.5rem 0;
+}
