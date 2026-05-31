@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
@@ -11,12 +11,15 @@ export const metadata: Metadata = {
     "Turn confusing charts into structured plans. Not financial advice. Educational and paper-trading only.",
   applicationName: "Planifier",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0B0F14",
   appleWebApp: {
     capable: true,
     title: "Planifier",
     statusBarStyle: "black-translucent",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0B0F14",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

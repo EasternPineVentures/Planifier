@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
 
 export default function Nav() {
   return (
@@ -17,7 +23,23 @@ export default function Nav() {
       <span className="rounded border border-border px-2 py-1 font-mono text-[10px] uppercase text-muted">
         NFA · paper-trade first
       </span>
-      <UserButton afterSignOutUrl="/sign-in" />
+      <SignedOut>
+        <div className="flex items-center gap-2">
+          <SignInButton mode="modal">
+            <button className="rounded border border-border px-3 py-2 text-xs font-medium text-ink hover:border-muted">
+              Sign in
+            </button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <button className="rounded border border-accent/60 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:border-accent">
+              Sign up
+            </button>
+          </SignUpButton>
+        </div>
+      </SignedOut>
+      <SignedIn>
+        <UserButton afterSignOutUrl="/sign-in" />
+      </SignedIn>
     </nav>
   );
 }
