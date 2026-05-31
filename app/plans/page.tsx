@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import Nav from "@/components/Nav";
 import { requireUserId } from "@/lib/db/users";
 import { db, schema } from "@/lib/db/client";
@@ -8,7 +9,13 @@ import type { Plan } from "@/lib/plan/schema";
 export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {
-  const userId = await requireUserId();
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch {
+    redirect("/sign-in");
+  }
+
   const rows = await db
     .select({
       id: schema.plans.id,

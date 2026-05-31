@@ -1,7 +1,12 @@
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import BuildPlanStepper from "@/components/BuildPlanStepper";
 import Nav from "@/components/Nav";
 
-export default function NewPlanPage() {
+export default async function NewPlanPage() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6">
       <Nav />

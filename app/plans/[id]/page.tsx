@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Nav from "@/components/Nav";
 import PlanView from "@/components/PlanView";
 import JournalForm from "@/components/JournalForm";
@@ -13,7 +13,12 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function PlanDetail({ params }: Props) {
   const { id } = await params;
-  const userId = await requireUserId();
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch {
+    redirect("/sign-in");
+  }
 
   const [row] = await db
     .select()
