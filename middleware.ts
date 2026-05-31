@@ -17,5 +17,6 @@ export const config = {
     // Skip Next internals and static files
     "/((?!_next|.*\\..*).*)",
     "/(api|trpc)(.*)",
+    "/__clerk/(.*)",
   ],
 };
