@@ -1,5 +1,7 @@
 # Planifier App Structure Audit
 
+> **⚠️ SUPERSEDED (2026-05-31).** This snapshot predates the chat-first split. It is kept for historical context only. Known inaccuracies: it lists an `/api/journal` route that does not exist, and it describes `/` as embedding `Chat.tsx` — the builder has since moved to `/plan/new` and `/` is now a landing/command screen. For the current source map and boundary rules, see [audits/project_workspace_audit_2026-05-31.md](audits/project_workspace_audit_2026-05-31.md) and the repo `README.md`.
+
 Snapshot taken during the mobile-first planning pass. Used to identify what to rework first without doing the rework yet.
 
 ## Existing Routes

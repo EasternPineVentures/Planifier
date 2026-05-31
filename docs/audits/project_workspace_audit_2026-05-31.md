@@ -57,6 +57,8 @@ This is a read-only workspace boundary audit taken before more Planifier cleanup
 
    The live `/plan/new` route now imports `components/Chat.tsx`. `BuildPlanStepper.tsx` is a cleanup candidate after confirming no rollback need.
 
+   > **RESOLVED 2026-05-31:** confirmed no in-repo references and removed `components/BuildPlanStepper.tsx` (recoverable via git history). Typecheck + tests green after removal.
+
 6. Some docs are stale relative to the current chat-first builder:
    - `README.md`
    - `docs/app_structure_audit.md`
@@ -95,7 +97,7 @@ This should happen before every coding or cleanup pass.
 ### P1 - Planifier Repo Hygiene
 
 - Refresh README to match the current chat-first `/plan/new` flow.
-- Decide whether to delete or archive `components/BuildPlanStepper.tsx`.
+- ~~Decide whether to delete or archive `components/BuildPlanStepper.tsx`.~~ Done — removed.
 - Decide whether `.agents/skills` belongs in the product repo long-term.
 - Keep `.env.local`, `.vercel`, `.next`, `node_modules`, and build artifacts ignored.
 

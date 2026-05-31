@@ -43,25 +43,37 @@ Planifier is for educational, planning, and paper-trading workflows.
 app/
   api/
     chat/route.ts          # AI SDK streaming endpoint (free-form Q&A, auth-required)
-    plan/route.ts          # generateObject → structured 7-section plan, persisted
+    plan/route.ts          # generateObject → structured 7-section plan, persisted + source links
+    plan/intake/route.ts   # turns raw user input into structured plan inputs (generateObject)
+    plan/explore/route.ts  # context gathering: Kraken market + news RSS + FoxClaw (context-only)
     plans/route.ts         # list current user's plans
     plans/[id]/route.ts    # get plan + journal; POST adds a journal entry
+    health/route.ts        # public probe: db + auth + per-provider AI status
+  plan/new/page.tsx        # the guided plan builder (mounts <Chat />, auth-gated)
   plans/
     page.tsx               # "My plans" list
     [id]/page.tsx          # plan detail + journal view + entry form
   sign-in/[[...sign-in]]/page.tsx
   sign-up/[[...sign-up]]/page.tsx
-  layout.tsx               # ClerkProvider
-  page.tsx                 # mounts <Chat />
+  layout.tsx               # ClerkProvider + metadata/viewport (force-dynamic)
+  page.tsx                 # landing / command screen
 components/
   Chat.tsx                 # five-input gating panel + streaming chat + "Build structured plan"
   PlanView.tsx             # renders the 7-section structured plan
   JournalForm.tsx          # post-trade journal entry form
+  TrustedSourceLinks.tsx   # research/verification links shown with a plan
   Nav.tsx                  # top nav with Clerk <UserButton />
 lib/
+  ai/router.ts             # pickModel() — provider/model selection (Anthropic / OpenAI)
   prompts.ts               # reads prompts/runtime-system-prompt.md
   validation.ts            # five-input gating + timeframe/holding-period sanity check
+  market/kraken.ts         # public Kraken market snapshot
+  news/rss.ts              # public news RSS context
+  context/foxclaw.ts       # read-only, context-only FoxClaw bridge (advisory; never authority)
+  sources/sourceLinks.ts   # builds trusted research links per asset
   plan/schema.ts           # zod PlanSchema (single source of truth for plan shape)
+  plan/timeframe.ts        # timeframe parsing + holding-period alignment
+  plan/errors.ts           # planError() helpers
   db/
     client.ts              # Drizzle + @neondatabase/serverless
     schema.ts              # users, plans, journal_entries tables
@@ -71,6 +83,7 @@ drizzle.config.ts          # drizzle-kit config
 prompts/
   runtime-system-prompt.md     # what Planifier says to end users (single source of truth)
   builder-context-prompt.md    # what you paste into Codex/Claude when designing the product
+docs/                          # design, audits, testing, and training notes (see docs/audits/)
 ```
 
 ## Setup
@@ -118,10 +131,14 @@ Hugging Face is not the default plan-generation provider yet. Structured plan ge
 4. From your local machine, run `npm run db:push` against the same `DATABASE_URL` to create tables (or wire it into a build step).
 5. Deploy.
 
-## Two output modes
+## Output modes and the build flow
+
+The guided builder lives at `/plan/new` (`<Chat />`); `/` is a landing/command screen. Under the hood:
 
 - **Chat (`/api/chat`)** — streaming, free-form Q&A still bound by the runtime system prompt. Use for follow-up questions like "what does invalidation mean here?".
 - **Structured Plan (`/api/plan`)** — `generateObject` with the zod `PlanSchema`. Always returns the seven sections plus a disclaimer, timeframe-mismatch warning, and optional cognitive-bias notes. Persisted to Postgres so it shows up under **My plans** and can be journaled.
+- **Intake (`/api/plan/intake`)** — helper step that turns raw, messy user input into the structured plan inputs the builder needs.
+- **Explore (`/api/plan/explore`)** — context-gathering step that pulls public Kraken market data and news RSS, plus **context-only** FoxClaw advisory data, to inform educational starting angles. It never produces signals or trade authority. See [docs/context/foxclaw_planifier_bridge.md](docs/context/foxclaw_planifier_bridge.md).
 
 ## Input gating (the five required inputs)
 
