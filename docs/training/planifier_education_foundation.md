@@ -97,6 +97,9 @@ Needs:
   pairs. The REST endpoint returns recent OHLC rows and includes the current,
   not-yet-committed candle, so Planifier should prefer committed candles for
   summaries.
+- CoinDesk and Cointelegraph RSS feeds can provide recent crypto headlines.
+  Headlines are context only: they can explain possible catalysts or caution
+  flags, but they do not confirm an entry, exit, or directional trade.
 - Chart education should emphasize support, resistance, trend, ranges, and
   volume as context, not prediction.
 - Risk education should remind users that time horizon, risk tolerance, and
@@ -107,6 +110,10 @@ Needs:
 ## Useful References
 
 - Kraken OHLC REST API: https://docs.kraken.com/api/docs/rest-api/get-ohlc-data
+- CoinDesk RSS feed: https://www.coindesk.com/arc/outboundfeeds/rss
+- CoinDesk RSS explainer:
+  https://www.coindesk.com/coindesk-news/2021/09/17/coindesk-rss
+- Cointelegraph RSS feed: https://cointelegraph.com/rss
 - StockCharts ChartSchool technical analysis overview:
   https://chartschool.stockcharts.com/table-of-contents/overview/technical-analysis
 - StockCharts ChartSchool support and resistance:

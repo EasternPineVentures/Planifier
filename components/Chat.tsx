@@ -39,6 +39,18 @@ type ExploreResponse = {
   overview: string;
   dataNotes: string[];
   candidates: ExploreCandidate[];
+  newsSnapshot?: {
+    generatedAt: string;
+    queryTerms: string[];
+    articles: Array<{
+      title: string;
+      url: string;
+      source: string;
+      publishedAt: string | null;
+      matchedTerms: string[];
+    }>;
+    sourceNotes: string[];
+  };
   marketError?: string | null;
   foxClaw?: {
     available: boolean;
@@ -513,6 +525,44 @@ export default function Chat() {
                 )}
               </div>
 
+              {exploreResult.newsSnapshot && (
+                <div className="rounded border border-border bg-bg p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                      Current context
+                    </h3>
+                    <span className="text-[10px] text-muted">
+                      {formatTimestamp(exploreResult.newsSnapshot.generatedAt)}
+                    </span>
+                  </div>
+                  {exploreResult.newsSnapshot.articles.length > 0 ? (
+                    <div className="mt-2 space-y-2">
+                      {exploreResult.newsSnapshot.articles.slice(0, 4).map((article) => (
+                        <a
+                          key={article.url}
+                          href={article.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded border border-border px-2 py-2 text-xs leading-relaxed text-ink hover:border-muted"
+                        >
+                          <span className="block">{article.title}</span>
+                          <span className="mt-1 block text-[10px] text-muted">
+                            {article.source}
+                            {article.publishedAt
+                              ? ` / ${formatTimestamp(article.publishedAt)}`
+                              : ""}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs leading-relaxed text-muted">
+                      No matching headlines found in the checked RSS sources.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {exploreResult.candidates.map((candidate) => (
                 <article
                   key={candidate.label}
@@ -780,4 +830,15 @@ function normalizeHoldingPeriod(value: PlanInputs["holdingPeriod"]): PlanInputs[
     return value;
   }
   return "";
+}
+
+function formatTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }

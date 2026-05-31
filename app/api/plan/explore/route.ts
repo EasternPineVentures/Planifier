@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { pickModel } from "@/lib/ai/router";
 import { getKrakenMarketSnapshot, type MarketSnapshot } from "@/lib/market/kraken";
 import { readFoxClawContext, type FoxClawContext } from "@/lib/context/foxclaw";
+import { getCurrentNewsSnapshot, type NewsSnapshot } from "@/lib/news/rss";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
   }
 
   const foxClaw = useFoxClaw ? readFoxClawContext(pair) : null;
+  const newsSnapshot = await getCurrentNewsSnapshot(pair);
   const { model } = pickModel({ task: "plan" });
 
   let result: ExploreResult;
@@ -79,6 +81,7 @@ export async function POST(req: Request) {
         "You generate educational paper-trading setup candidates for Planifier. " +
         "Your job is to give a beginner somewhere to start, not to tell them what to buy or sell. " +
         "Use the market snapshot and optional FoxClaw context only as evidence. " +
+        "Use current headlines as context only; headlines do not confirm trades by themselves. " +
         "If evidence is thin or unavailable, say so and provide neutral observation plans. " +
         "Every candidate must include a wait-for condition and invalidation. " +
         "Never use phrases like guaranteed, obvious trade, must buy, must short, or sure thing. " +
@@ -93,6 +96,7 @@ export async function POST(req: Request) {
             `Preferred style: ${style}\n\n` +
             `Market snapshot:\n${JSON.stringify(marketSnapshot, null, 2)}\n` +
             `Market error, if any: ${marketError ?? "none"}\n\n` +
+            `Current news snapshot:\n${JSON.stringify(newsSnapshot, null, 2)}\n\n` +
             `FoxClaw context:\n${JSON.stringify(foxClaw, null, 2)}`,
         },
       ],
@@ -108,6 +112,7 @@ export async function POST(req: Request) {
       style,
       marketSnapshot,
       marketError,
+      newsSnapshot,
       foxClaw,
     });
   }
@@ -116,6 +121,7 @@ export async function POST(req: Request) {
     ...result,
     marketSnapshot,
     marketError,
+    newsSnapshot,
     foxClaw,
   });
 }
@@ -127,6 +133,7 @@ function fallbackExplore({
   style,
   marketSnapshot,
   marketError,
+  newsSnapshot,
   foxClaw,
 }: {
   pair: string;
@@ -135,6 +142,7 @@ function fallbackExplore({
   style: z.infer<typeof BodySchema>["style"];
   marketSnapshot: MarketSnapshot | null;
   marketError: string | null;
+  newsSnapshot: NewsSnapshot;
   foxClaw: FoxClawContext | null;
 }): ExploreResult {
   const holdingPeriod =
@@ -147,6 +155,9 @@ function fallbackExplore({
   const sourceNote = foxClaw?.available
     ? "FoxClaw context was available as read-only advisory context."
     : "FoxClaw context was not available in this runtime.";
+  const headlineNote = newsSnapshot.articles.length
+    ? `${newsSnapshot.articles.length} recent matching crypto headlines were found.`
+    : "No recent matching crypto headlines were found from the RSS sources checked.";
 
   return {
     overview:
@@ -156,6 +167,7 @@ function fallbackExplore({
         ? "Kraken public OHLC data was used for a lightweight chart snapshot."
         : `Market snapshot unavailable: ${marketError ?? "unknown reason"}.`,
       sourceNote,
+      headlineNote,
       "Each candidate requires confirmation before becoming a structured plan.",
     ],
     candidates: [
