@@ -42,6 +42,7 @@ const ExploreResultSchema = z.object({
 });
 
 type ExploreResult = z.infer<typeof ExploreResultSchema>;
+type ExploreStyle = NonNullable<z.infer<typeof BodySchema>["style"]>;
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -116,6 +117,12 @@ export async function POST(req: Request) {
       foxClaw,
     });
   }
+  result = normalizeExploreResult(result, {
+    pair,
+    timeframe,
+    riskPercent,
+    style,
+  });
 
   return Response.json({
     ...result,
@@ -124,6 +131,63 @@ export async function POST(req: Request) {
     newsSnapshot,
     foxClaw,
   });
+}
+
+function normalizeExploreResult(
+  result: ExploreResult,
+  {
+    pair,
+    timeframe,
+    riskPercent,
+    style,
+  }: {
+    pair: string;
+    timeframe: string;
+    riskPercent: string;
+    style: ExploreStyle;
+  }
+): ExploreResult {
+  const ticker = pair.trim().toUpperCase();
+  const requestedHoldingPeriod = normalizeHoldingPeriod(style);
+
+  return {
+    ...result,
+    candidates: result.candidates.map((candidate) => {
+      const chartNote = candidate.planSeed.chartNote.trim() || candidate.chartContext;
+      return {
+        ...candidate,
+        planSeed: {
+          ...candidate.planSeed,
+          ticker,
+          timeframe,
+          holdingPeriod: requestedHoldingPeriod ?? candidate.planSeed.holdingPeriod,
+          riskPercent,
+          chartNote: ensureMarketPrefix(chartNote, ticker, timeframe),
+        },
+      };
+    }),
+  };
+}
+
+function normalizeHoldingPeriod(style: ExploreStyle) {
+  if (
+    style === "Scalp" ||
+    style === "Day" ||
+    style === "Swing" ||
+    style === "Position"
+  ) {
+    return style;
+  }
+  return null;
+}
+
+function ensureMarketPrefix(note: string, ticker: string, timeframe: string): string {
+  const trimmed = note.trim();
+  const upper = trimmed.toUpperCase();
+  if (upper.includes(ticker.toUpperCase()) && upper.includes(timeframe.toUpperCase())) {
+    return trimmed;
+  }
+  return `${ticker} ${timeframe}: ${trimmed}`;
 }
 
 function fallbackExplore({
@@ -139,7 +203,7 @@ function fallbackExplore({
   pair: string;
   timeframe: string;
   riskPercent: string;
-  style: z.infer<typeof BodySchema>["style"];
+  style: ExploreStyle;
   marketSnapshot: MarketSnapshot | null;
   marketError: string | null;
   newsSnapshot: NewsSnapshot;

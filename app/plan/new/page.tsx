@@ -8,7 +8,7 @@ export default async function NewPlanPage() {
   if (!userId) redirect("/sign-in");
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6">
       <Nav />
       <p className="text-sm text-muted">
         Start with a pair, a screenshot, or plain English. Planifier turns that

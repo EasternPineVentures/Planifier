@@ -84,7 +84,7 @@ const CHART_EXAMPLES = [
 ] as const;
 
 const EXPLORE_TIMEFRAMES = ["15m", "1H", "4H", "1D"] as const;
-const EXPLORE_STYLES = ["Unsure", "Day", "Swing", "Position"] as const;
+const EXPLORE_STYLES = ["Unsure", "Scalp", "Day", "Swing", "Position"] as const;
 
 const FIELD_LABELS: Record<MissingField, string> = {
   ticker: "asset",
@@ -127,6 +127,7 @@ export default function Chat() {
   const [exploreBusy, setExploreBusy] = useState(false);
   const [exploreResult, setExploreResult] = useState<ExploreResponse | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const buildRef = useRef<HTMLElement | null>(null);
 
   const missing = useMemo(
     () => validateInputs({ ...inputs, hasImage: !!imageDataUrl }),
@@ -292,6 +293,9 @@ export default function Chat() {
   }
 
   function applyExploreCandidate(candidate: ExploreCandidate) {
+    setExplorePair(candidate.planSeed.ticker);
+    setExploreTimeframe(candidate.planSeed.timeframe);
+    setExploreStyle(candidate.planSeed.holdingPeriod);
     updateInputs({
       ticker: candidate.planSeed.ticker,
       timeframe: candidate.planSeed.timeframe,
@@ -309,6 +313,9 @@ export default function Chat() {
         content: `Loaded "${candidate.label}" into the plan fields. Read the chart context on the right, edit anything you disagree with, then build the structured plan.`,
       },
     ]);
+    window.setTimeout(() => {
+      buildRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   }
 
   async function buildStructuredPlan() {
@@ -360,8 +367,8 @@ export default function Chat() {
   }
 
   return (
-    <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <section className="flex min-h-[68vh] flex-col rounded border border-border bg-panel">
+    <div className="grid flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.55fr)]">
+      <section className="flex flex-col rounded border border-border bg-panel xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]">
         <div className="border-b border-border p-4">
           <h2 className="text-sm font-medium">Plain-English plan builder</h2>
           <p className="mt-1 text-xs leading-relaxed text-muted">
@@ -370,7 +377,7 @@ export default function Chat() {
           </p>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        <div className="max-h-[420px] min-h-[220px] space-y-3 overflow-y-auto p-4 xl:max-h-[38vh]">
           {messages.map((m, i) => (
             <Message key={i} role={m.role} content={m.content} />
           ))}
@@ -424,7 +431,7 @@ export default function Chat() {
               }}
               rows={3}
               placeholder="Example: BTC 4H swing, risk 1%. Pulling back into prior support after higher lows. I am unsure if this is continuation or weakness."
-              className="min-h-[96px] flex-1 resize-none rounded border border-border bg-bg p-3 text-sm leading-relaxed"
+              className="min-h-[72px] flex-1 resize-none rounded border border-border bg-bg p-3 text-sm leading-relaxed"
             />
             <button
               type="button"
@@ -441,7 +448,7 @@ export default function Chat() {
         </div>
       </section>
 
-      <aside className="space-y-4">
+      <aside className="space-y-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
         <section className="rounded border border-border bg-panel p-4">
           <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
             Start with a pair
@@ -525,44 +532,6 @@ export default function Chat() {
                 )}
               </div>
 
-              {exploreResult.newsSnapshot && (
-                <div className="rounded border border-border bg-bg p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted">
-                      Current context
-                    </h3>
-                    <span className="text-[10px] text-muted">
-                      {formatTimestamp(exploreResult.newsSnapshot.generatedAt)}
-                    </span>
-                  </div>
-                  {exploreResult.newsSnapshot.articles.length > 0 ? (
-                    <div className="mt-2 space-y-2">
-                      {exploreResult.newsSnapshot.articles.slice(0, 4).map((article) => (
-                        <a
-                          key={article.url}
-                          href={article.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block rounded border border-border px-2 py-2 text-xs leading-relaxed text-ink hover:border-muted"
-                        >
-                          <span className="block">{article.title}</span>
-                          <span className="mt-1 block text-[10px] text-muted">
-                            {article.source}
-                            {article.publishedAt
-                              ? ` / ${formatTimestamp(article.publishedAt)}`
-                              : ""}
-                          </span>
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-xs leading-relaxed text-muted">
-                      No matching headlines found in the checked RSS sources.
-                    </p>
-                  )}
-                </div>
-              )}
-
               {exploreResult.candidates.map((candidate) => (
                 <article
                   key={candidate.label}
@@ -596,11 +565,44 @@ export default function Chat() {
                   </button>
                 </article>
               ))}
+
+              {exploreResult.newsSnapshot && (
+                <details className="rounded border border-border bg-bg p-3">
+                  <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-wider text-muted">
+                    Current context / {formatTimestamp(exploreResult.newsSnapshot.generatedAt)}
+                  </summary>
+                  {exploreResult.newsSnapshot.articles.length > 0 ? (
+                    <div className="mt-2 space-y-2">
+                      {exploreResult.newsSnapshot.articles.slice(0, 2).map((article) => (
+                        <a
+                          key={article.url}
+                          href={article.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded border border-border px-2 py-2 text-xs leading-relaxed text-ink hover:border-muted"
+                        >
+                          <span className="block">{article.title}</span>
+                          <span className="mt-1 block text-[10px] text-muted">
+                            {article.source}
+                            {article.publishedAt
+                              ? ` / ${formatTimestamp(article.publishedAt)}`
+                              : ""}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs leading-relaxed text-muted">
+                      No matching headlines found in the checked RSS sources.
+                    </p>
+                  )}
+                </details>
+              )}
             </div>
           )}
         </section>
 
-        <section className="rounded border border-border bg-panel p-4">
+        <section ref={buildRef} className="rounded border border-border bg-panel p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
               What I understand
@@ -722,16 +724,21 @@ export default function Chat() {
         </section>
 
         <section className="rounded border border-border bg-panel p-4">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            Chart examples
-          </h2>
-          <div className="mt-3 space-y-2">
-            {CHART_EXAMPLES.map((example) => (
-              <p key={example} className="rounded border border-border bg-bg p-2 text-xs leading-relaxed text-muted">
-                {example}
-              </p>
-            ))}
-          </div>
+          <details>
+            <summary className="cursor-pointer list-none font-mono text-xs uppercase tracking-wider text-muted">
+              Chart examples
+            </summary>
+            <div className="mt-3 space-y-2">
+              {CHART_EXAMPLES.map((example) => (
+                <p
+                  key={example}
+                  className="rounded border border-border bg-bg p-2 text-xs leading-relaxed text-muted"
+                >
+                  {example}
+                </p>
+              ))}
+            </div>
+          </details>
         </section>
       </aside>
     </div>
