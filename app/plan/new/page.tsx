@@ -11,7 +11,8 @@ export default async function NewPlanPage() {
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6">
       <Nav />
       <p className="text-sm text-muted">
-        Build a structured plan step-by-step from chart context. Plans, not signals.
+        Turn your own chart read into a paper-trade checklist. If you are new,
+        start with the examples and let the builder show what a useful plan needs.
       </p>
       <BuildPlanStepper />
       <footer className="border-t border-border pt-3 text-[11px] leading-relaxed text-muted">
