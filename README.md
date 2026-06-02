@@ -102,6 +102,7 @@ Open http://localhost:3000. You'll be redirected to `/sign-in`.
 
 - At least one AI provider key is required: `ANTHROPIC_API_KEY`, `BLACKBOX_API_KEY`, `OPENAI_API_KEY`, or `HF_TOKEN`
 - `PLANIFIER_MODEL` — optional, default `gpt-4o` (needs multimodal for image input)
+- `NEXT_PUBLIC_APP_URL` - production canonical URL; set to `https://planifier.cloud` in Vercel
 - `DATABASE_URL` — Neon Postgres connection string
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` — from Clerk dashboard
 - `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
@@ -127,9 +128,14 @@ Hugging Face is not the default plan-generation provider yet. Structured plan ge
 
 1. Push to GitHub, import into Vercel.
 2. **Storage** tab → add **Neon Postgres** from the Marketplace. `DATABASE_URL` is auto-injected.
-3. Add `OPENAI_API_KEY` and your Clerk keys in **Settings → Environment Variables**.
+3. Add at least one AI provider key, your Clerk keys, and `NEXT_PUBLIC_APP_URL=https://planifier.cloud` in **Settings → Environment Variables**.
 4. From your local machine, run `npm run db:push` against the same `DATABASE_URL` to create tables (or wire it into a build step).
 5. Deploy.
+6. Add `planifier.cloud` and `www.planifier.cloud` to the Vercel project domains.
+7. Use Vercel's domain inspection to copy the exact DNS records into the registrar/DNS provider.
+8. Set `planifier.cloud` as canonical and redirect `www.planifier.cloud` to it.
+9. Add the production domain and preview domains to Clerk's allowed redirect/origin settings.
+10. Smoke test `https://planifier.cloud`, `/plan/new`, `/plans`, `/api/health`, `/robots.txt`, and `/sitemap.xml`.
 
 ## Output modes and the build flow
 

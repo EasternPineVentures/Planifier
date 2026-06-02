@@ -12,7 +12,7 @@ Start here:
 
 ```text
 Hard refresh: Ctrl+F5
-Open: https://planifier.vercel.app/plan/new
+Open: https://planifier.cloud/plan/new
 ```
 
 ## Test Flow
@@ -21,7 +21,7 @@ Open: https://planifier.vercel.app/plan/new
 2. Choose the closest beginner path to "I do not know where to start."
 3. Pick `XLM/USD`.
 4. Pick `1H`.
-5. Pick risk level.
+5. Confirm the fixed 1% risk guardrail is visible.
 6. Pick style: `Scalp`.
 7. Choose a starting angle.
 8. Click "Use this as the starting plan."
@@ -46,6 +46,7 @@ Pair:
 Timeframe:
 Style:
 Risk:
+Fixed at 1% visible? Yes / No
 
 FRICTION LOG
 
@@ -118,9 +119,9 @@ This should focus on guidance rather than adding major new routes or dashboards.
 | Examples beside fields | Shows what a good answer looks like |
 | Confirmation explainer | Explains what needs to happen before an idea becomes stronger |
 | Invalidation explainer | Explains what would prove the idea wrong |
-| Risk explainer | Explains how much can be wrong before stepping away |
+| Risk explainer | Explains the fixed 1% guardrail before stepping away |
 | Timeframe explainer | Explains what kind of decision the chart helps with |
-| Chart context prompts | Helps the user describe what they see |
+| Chart context prompts | Gives tap-to-add starters for trend, key level, current behavior, and wrong-if condition |
 
 ## Chart Example Library
 

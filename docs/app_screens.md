@@ -39,7 +39,7 @@ Per-screen specs for the mobile-first product. Routes marked *(proposed)* don't 
 **Stepper:**
 1. **Asset** — ticker text input, recent-tickers chips (when we have history)
 2. **Timeframe + Holding Period** — paired on one screen because they trigger the mismatch check
-3. **Risk** — segmented control (0.25%, 0.5%, 1%, 2%, custom)
+3. **Risk** — locked guardrail display (`1%`, not editable)
 4. **Chart Context** — image upload + textarea; either is sufficient
 5. **Review + Generate** — read-only summary, primary "Build plan" CTA, secondary "Edit step N" links
 

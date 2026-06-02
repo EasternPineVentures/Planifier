@@ -5,6 +5,7 @@ import { pickModel } from "@/lib/ai/router";
 import { getKrakenMarketSnapshot, type MarketSnapshot } from "@/lib/market/kraken";
 import { readFoxClawContext, type FoxClawContext } from "@/lib/context/foxclaw";
 import { getCurrentNewsSnapshot, type NewsSnapshot } from "@/lib/news/rss";
+import { FIXED_RISK_PERCENT } from "@/lib/plan/risk";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -15,6 +16,7 @@ const BodySchema = z.object({
   riskPercent: z.string().optional(),
   style: z.enum(["Scalp", "Day", "Swing", "Position", "Unsure"]).optional(),
   useFoxClaw: z.boolean().optional(),
+  learningMode: z.enum(["standard", "beginner"]).optional().default("standard"),
 });
 
 const SetupCandidateSchema = z.object({
@@ -56,10 +58,11 @@ export async function POST(req: Request) {
   const {
     pair,
     timeframe = "4H",
-    riskPercent = "1%",
     style = "Unsure",
     useFoxClaw = true,
+    learningMode,
   } = parsed.data;
+  const riskPercent = FIXED_RISK_PERCENT;
 
   let marketSnapshot: MarketSnapshot | null = null;
   let marketError: string | null = null;
@@ -81,19 +84,23 @@ export async function POST(req: Request) {
       system:
         "You generate educational paper-trading setup candidates for Planifier. " +
         "Your job is to give a beginner somewhere to start, not to tell them what to buy or sell. " +
+        `Risk is fixed at ${FIXED_RISK_PERCENT}; do not suggest changing it. ` +
         "Use the market snapshot and optional FoxClaw context only as evidence. " +
         "Use current headlines as context only; headlines do not confirm trades by themselves. " +
         "If evidence is thin or unavailable, say so and provide neutral observation plans. " +
         "Every candidate must include a wait-for condition and invalidation. " +
         "Never use phrases like guaranteed, obvious trade, must buy, must short, or sure thing. " +
-        "If FoxClaw context is present, treat it as context_only/advisory and do not inherit trade authority.",
+        "If FoxClaw context is present, treat it as context_only/advisory and do not inherit trade authority. " +
+        (learningMode === "beginner"
+          ? "The user selected Still Learning mode. Use simple wording and briefly define jargon where it appears."
+          : "The user selected Standard mode. Keep wording concise."),
       messages: [
         {
           role: "user",
           content:
             `Pair: ${pair}\n` +
             `Preferred timeframe: ${timeframe}\n` +
-            `Risk per trade: ${riskPercent}\n` +
+            `Risk per trade: ${riskPercent} (fixed by Planifier)\n` +
             `Preferred style: ${style}\n\n` +
             `Market snapshot:\n${JSON.stringify(marketSnapshot, null, 2)}\n` +
             `Market error, if any: ${marketError ?? "none"}\n\n` +
@@ -111,6 +118,7 @@ export async function POST(req: Request) {
       timeframe,
       riskPercent,
       style,
+      learningMode,
       marketSnapshot,
       marketError,
       newsSnapshot,
@@ -195,6 +203,7 @@ function fallbackExplore({
   timeframe,
   riskPercent,
   style,
+  learningMode,
   marketSnapshot,
   marketError,
   newsSnapshot,
@@ -204,6 +213,7 @@ function fallbackExplore({
   timeframe: string;
   riskPercent: string;
   style: ExploreStyle;
+  learningMode: "standard" | "beginner";
   marketSnapshot: MarketSnapshot | null;
   marketError: string | null;
   newsSnapshot: NewsSnapshot;
@@ -222,10 +232,14 @@ function fallbackExplore({
   const headlineNote = newsSnapshot.articles.length
     ? `${newsSnapshot.articles.length} recent matching crypto headlines were found.`
     : "No recent matching crypto headlines were found from the RSS sources checked.";
+  const beginnerPrefix =
+    learningMode === "beginner"
+      ? "In simple terms, this is a practice idea that needs proof before it matters. "
+      : "";
 
   return {
     overview:
-      `${snapshotLine} Treat these as paper-trade planning angles, not signals.`,
+      `${beginnerPrefix}${snapshotLine} Treat these as paper-trade planning angles, not signals.`,
     dataNotes: [
       marketSnapshot
         ? "Kraken public OHLC data was used for a lightweight chart snapshot."
@@ -239,7 +253,8 @@ function fallbackExplore({
         label: "Continuation after confirmation",
         bias: marketSnapshot?.trendLabel === "downtrend" ? "short" : "long",
         thesis:
-          "If the current trend remains intact, the cleanest lesson is waiting for confirmation instead of chasing the first move.",
+          beginnerPrefix +
+          "If the current trend remains intact, the cleanest lesson is waiting for confirmation: a clear clue that the idea is still behaving as expected.",
         whatToWaitFor: [
           "A candle close that confirms direction near a clear level.",
           "A retest that holds instead of instantly reversing.",
@@ -250,7 +265,7 @@ function fallbackExplore({
           "The recent swing structure breaks against the idea.",
         ],
         riskNotes: [
-          `Keep risk near ${riskPercent}.`,
+          `Risk is fixed at ${riskPercent}.`,
           "Skip the plan if invalidation is too far away for the stated risk.",
         ],
         chartContext:
@@ -270,7 +285,8 @@ function fallbackExplore({
         label: "Failed move or reversal watch",
         bias: "neutral",
         thesis:
-          "If the market rejects the obvious level, the better lesson may be patience around a failed move instead of forcing continuation.",
+          beginnerPrefix +
+          "If the market rejects the obvious level, the better lesson may be patience around a failed move: a move that starts one way, then quickly proves weak.",
         whatToWaitFor: [
           "A failed breakout or failed breakdown at a clear level.",
           "A reclaim or rejection candle that shows trapped traders.",
@@ -281,7 +297,7 @@ function fallbackExplore({
           "The reversal trigger appears before a clean level is defined.",
         ],
         riskNotes: [
-          `Keep risk near ${riskPercent}.`,
+          `Risk is fixed at ${riskPercent}.`,
           "This is lower confidence until the failed move is visible.",
         ],
         chartContext:

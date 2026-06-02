@@ -8,6 +8,7 @@ import {
   type PlanInputs,
 } from "@/lib/validation";
 import { auth } from "@clerk/nextjs/server";
+import { FIXED_RISK_PERCENT } from "@/lib/plan/risk";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
 
   const planInputs: PlanInputs = {
     ...inputs,
+    riskPercent: FIXED_RISK_PERCENT,
     hasImage: !!imageDataUrl,
   };
 
@@ -55,7 +57,7 @@ export async function POST(req: Request) {
   if (planInputs.ticker) contextLines.push(`Ticker: ${planInputs.ticker}`);
   if (planInputs.timeframe) contextLines.push(`Timeframe: ${planInputs.timeframe}`);
   if (planInputs.holdingPeriod) contextLines.push(`Holding period: ${planInputs.holdingPeriod}`);
-  if (planInputs.riskPercent) contextLines.push(`Risk per trade: ${planInputs.riskPercent}`);
+  contextLines.push(`Risk per trade: ${FIXED_RISK_PERCENT} (fixed by Planifier)`);
   if (planInputs.chartNote) contextLines.push(`Chart note: ${planInputs.chartNote}`);
 
   if (planInputs.timeframe && planInputs.holdingPeriod) {

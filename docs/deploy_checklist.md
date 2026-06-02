@@ -19,6 +19,7 @@ HUGGINGFACE_CHAT_MODEL=
 HUGGINGFACE_PLAN_MODEL=
 PLANIFIER_MODEL=auto
 PROVIDERS_PREFERRED=anthropic,blackbox,openai
+NEXT_PUBLIC_APP_URL=https://planifier.cloud
 DATABASE_URL=
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
@@ -67,8 +68,13 @@ git ls-files | findstr /I env
 
 - Confirm `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is set.
 - Confirm `CLERK_SECRET_KEY` is set.
-- Confirm allowed redirect URLs include Vercel preview and production domains.
-- Confirm sign-in/sign-up works in preview.
+- Confirm allowed redirect URLs include:
+  - `https://planifier.cloud`
+  - `https://planifier.cloud/sign-in`
+  - `https://planifier.cloud/sign-up`
+  - `https://www.planifier.cloud`
+  - Vercel preview domains used for testing.
+- Confirm sign-in/sign-up works on preview before switching production traffic.
 
 ## AI Providers
 
@@ -80,6 +86,7 @@ git ls-files | findstr /I env
 
 - Connect GitHub repo in Vercel.
 - Set environment variables in Vercel project settings.
+- Set `NEXT_PUBLIC_APP_URL=https://planifier.cloud` for production.
 - Deploy preview.
 - Visit `/api/health`.
 - Sign in.
@@ -90,21 +97,38 @@ git ls-files | findstr /I env
 - Test saved plan cards on a mobile viewport.
 - Test PWA manifest detection/add-to-home-screen behavior.
 
+## planifier.cloud Cutover
+
+- In Vercel, add both `planifier.cloud` and `www.planifier.cloud` to the Planifier project.
+- Set `planifier.cloud` as the production/canonical domain.
+- Configure `www.planifier.cloud` to redirect to `planifier.cloud` to avoid duplicate content.
+- Run `vercel domains inspect planifier.cloud` or use the Vercel dashboard to get the exact DNS records.
+- If DNS is managed outside Vercel, add those exact records in the registrar/DNS provider dashboard.
+- If DNS is managed by Vercel, add or verify the records in Vercel DNS.
+- Wait for Vercel to show the domain as configured and SSL as issued.
+- Visit `https://planifier.cloud`, `https://planifier.cloud/plan/new`, `https://planifier.cloud/plans`, `https://planifier.cloud/api/health`, `https://planifier.cloud/manifest.webmanifest`, `https://planifier.cloud/robots.txt`, and `https://planifier.cloud/sitemap.xml`.
+- Confirm `https://www.planifier.cloud` redirects to `https://planifier.cloud`.
+- Confirm the historical scenario chart request works from `/plan/new` after sign-in.
+
 ## Manual First Smoke Test
 
-1. Visit home page.
+1. Visit `https://planifier.cloud`.
 2. Sign in.
 3. Build a plan from `/plan/new`.
 4. Use fake educational test data only.
-5. Confirm Strategy Notes render.
-6. Confirm Pre-Trade Checklist renders.
-7. Confirm Trusted Source Links render.
-8. Save and view the plan.
-9. Add a journal entry.
-10. Visit `/plans`.
-11. Confirm saved plan card displays summary.
-12. Visit `/api/health`.
-13. Test mobile viewport behavior.
+5. Confirm Beginner mode can explain terms clearly.
+6. Confirm the fixed 1% risk guardrail cannot be changed.
+7. Confirm Strategy Notes render.
+8. Confirm Pre-Trade Checklist renders.
+9. Confirm Trusted Source Links render.
+10. Confirm Scenario Chart renders example paths.
+11. Confirm historical scenario lookup shows evidence or a clear warning.
+12. Save and view the plan.
+13. Add a journal entry.
+14. Visit `/plans`.
+15. Confirm saved plan card displays summary.
+16. Visit `/api/health`.
+17. Test mobile viewport behavior.
 
 ## Explicit Deferrals
 

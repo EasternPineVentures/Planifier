@@ -8,9 +8,17 @@ import {
   type PlanInputs,
 } from "@/lib/validation";
 import PlanView from "@/components/PlanView";
+import ScenarioChart from "@/components/ScenarioChart";
 import type { Plan } from "@/lib/plan/schema";
+import {
+  appendChartContextPrompt,
+  CHART_CONTEXT_PROMPTS,
+} from "@/lib/plan/chartContext";
+import type { HistoricalScenarioMap } from "@/lib/plan/historicalScenarios";
+import { FIXED_RISK_PERCENT } from "@/lib/plan/risk";
 
 type Msg = { role: "user" | "assistant"; content: string };
+type LearningMode = "standard" | "beginner";
 
 type IntakeResponse = {
   inputs: PlanInputs;
@@ -68,29 +76,56 @@ const STARTER_PROMPTS = [
   },
   {
     label: "Breakout retest",
-    text: "NVDA daily chart, position idea, risk 0.5%. Price broke above a prior resistance area and is retesting it. I want a plan that separates a healthy retest from a failed breakout.",
+    text: "NVDA daily chart, position idea, risk 1%. Price broke above a prior resistance area and is retesting it. I want a plan that separates a healthy retest from a failed breakout.",
   },
   {
     label: "Range patience",
-    text: "SPY 1H, day trade, risk 0.5%. Price is in the middle of a range between support and resistance. I am not sure if there is enough edge yet, so help me define what evidence would matter.",
+    text: "SPY 1H, day trade, risk 1%. Price is in the middle of a range between support and resistance. I am not sure if there is enough edge yet, so help me define what evidence would matter.",
   },
 ] as const;
 
 const CHART_EXAMPLES = [
-  "Trend: higher highs/lows or lower highs/lows",
-  "Levels: support, resistance, range edge, prior high/low",
+  "Trend: higher highs/lows, lower highs/lows, or sideways",
+  "Level: support, resistance, range edge, prior high/low",
   "Now: testing, rejecting, consolidating, retesting",
-  "Invalidation: what would prove the read wrong",
+  "Wrong if: what would prove the read wrong",
 ] as const;
 
 const EXPLORE_TIMEFRAMES = ["15m", "1H", "4H", "1D"] as const;
 const EXPLORE_STYLES = ["Unsure", "Scalp", "Day", "Swing", "Position"] as const;
+const LEARNING_MODES: Array<{ value: LearningMode; label: string }> = [
+  { value: "beginner", label: "Still learning" },
+  { value: "standard", label: "Standard" },
+];
+
+const BEGINNER_FIELD_HELP = [
+  {
+    term: "Asset",
+    help: "The thing you are looking at, like BTC/USD, SPY, or NVDA.",
+  },
+  {
+    term: "Timeframe",
+    help: "How much time one candle covers. A 4H candle shows four hours of movement.",
+  },
+  {
+    term: "Confirmation",
+    help: "A clue you wait for before trusting the idea more.",
+  },
+  {
+    term: "Invalidation",
+    help: "The line where the idea is wrong and you stop practicing it.",
+  },
+  {
+    term: "Risk",
+    help: `Locked at ${FIXED_RISK_PERCENT}. The app keeps the practice loss limit the same every time.`,
+  },
+] as const;
 
 const FIELD_LABELS: Record<MissingField, string> = {
   ticker: "asset",
   timeframe: "timeframe",
   holdingPeriod: "holding period",
-  riskPercent: "risk",
+  riskPercent: "fixed 1% risk",
   chart: "chart context",
 };
 
@@ -99,15 +134,16 @@ export default function Chat() {
     ticker: "",
     timeframe: "",
     holdingPeriod: "",
-    riskPercent: "",
+    riskPercent: FIXED_RISK_PERCENT,
     chartNote: "",
   });
+  const [learningMode, setLearningMode] = useState<LearningMode>("beginner");
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
       content:
-        "Write the setup in plain English. I will pull out the asset, timeframe, holding period, risk, and chart context before building the structured plan.",
+        `Write the setup in plain English. I will pull out the asset, timeframe, holding period, and chart context. Risk stays fixed at ${FIXED_RISK_PERCENT}.`,
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -126,6 +162,10 @@ export default function Chat() {
   >("Unsure");
   const [exploreBusy, setExploreBusy] = useState(false);
   const [exploreResult, setExploreResult] = useState<ExploreResponse | null>(null);
+  const [historicalScenario, setHistoricalScenario] =
+    useState<HistoricalScenarioMap | null>(null);
+  const [historicalBusy, setHistoricalBusy] = useState(false);
+  const [historicalError, setHistoricalError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const buildRef = useRef<HTMLElement | null>(null);
 
@@ -137,7 +177,11 @@ export default function Chat() {
   const chartChars = inputs.chartNote?.trim().length ?? 0;
 
   function updateInputs(next: Partial<PlanInputs>) {
-    setInputs((current) => ({ ...current, ...next }));
+    setInputs((current) => ({
+      ...current,
+      ...next,
+      riskPercent: FIXED_RISK_PERCENT,
+    }));
     setPlanError(null);
   }
 
@@ -170,7 +214,7 @@ export default function Chat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          inputs,
+          inputs: { ...inputs, riskPercent: FIXED_RISK_PERCENT },
           imageDataUrl,
         }),
       });
@@ -194,7 +238,7 @@ export default function Chat() {
           ticker: data.inputs.ticker ?? "",
           timeframe: data.inputs.timeframe ?? "",
           holdingPeriod: normalizeHoldingPeriod(data.inputs.holdingPeriod),
-          riskPercent: data.inputs.riskPercent ?? "",
+          riskPercent: FIXED_RISK_PERCENT,
           chartNote: data.inputs.chartNote ?? "",
         });
       }
@@ -245,9 +289,10 @@ export default function Chat() {
         body: JSON.stringify({
           pair,
           timeframe: exploreTimeframe,
-          riskPercent: inputs.riskPercent || "1%",
+          riskPercent: FIXED_RISK_PERCENT,
           style: exploreStyle,
           useFoxClaw: true,
+          learningMode,
         }),
       });
       const data = (await res.json()) as Partial<ExploreResponse> & {
@@ -300,7 +345,7 @@ export default function Chat() {
       ticker: candidate.planSeed.ticker,
       timeframe: candidate.planSeed.timeframe,
       holdingPeriod: candidate.planSeed.holdingPeriod,
-      riskPercent: candidate.planSeed.riskPercent,
+      riskPercent: FIXED_RISK_PERCENT,
       chartNote: candidate.planSeed.chartNote,
     });
     setQuestion(
@@ -318,6 +363,69 @@ export default function Chat() {
     }, 0);
   }
 
+  function applyScenarioNote(note: string) {
+    updateInputs({
+      chartNote: appendChartContextPrompt(inputs.chartNote, note),
+    });
+    setQuestion(
+      "Map the likely paths before they happen. What confirms the idea, what kills it, and when should I stand aside?"
+    );
+    window.setTimeout(() => {
+      buildRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+  async function generateHistoricalScenarioMap() {
+    const pair = explorePair.trim().toUpperCase();
+    if (!pair || historicalBusy) return;
+    setHistoricalBusy(true);
+    setHistoricalError(null);
+
+    try {
+      const res = await fetch("/api/plan/scenarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pair,
+          timeframe: exploreTimeframe,
+          holdingPeriod: normalizeScenarioHolding(
+            exploreStyle,
+            inputs.holdingPeriod
+          ),
+        }),
+      });
+      const data = (await res.json()) as {
+        scenario?: HistoricalScenarioMap;
+        message?: string;
+      };
+      if (!res.ok || !data.scenario) {
+        setHistoricalError(
+          data.message ??
+            "Historical scenario mapping is not available for that pair yet."
+        );
+        return;
+      }
+      const scenario = data.scenario;
+      setHistoricalScenario(scenario);
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content:
+            `Mapped ${scenario.evidence.historicalSampleCount} similar historical episodes for ${pair} on ${exploreTimeframe}. ` +
+            "Use the scenario map to pre-plan confirmation, failure, and stand-aside paths.",
+        },
+      ]);
+    } catch (e) {
+      console.error(e);
+      setHistoricalError(
+        "Something broke while mapping history. The practice examples still work."
+      );
+    } finally {
+      setHistoricalBusy(false);
+    }
+  }
+
   async function buildStructuredPlan() {
     if (!ready || planBusy) return;
     setPlanBusy(true);
@@ -328,9 +436,10 @@ export default function Chat() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          inputs,
+          inputs: { ...inputs, riskPercent: FIXED_RISK_PERCENT },
           imageDataUrl,
           userQuestion: question.trim() || undefined,
+          learningMode,
         }),
       });
       const ct = res.headers.get("content-type") ?? "";
@@ -375,6 +484,28 @@ export default function Chat() {
             Describe what you see like you would to a trading buddy. Planifier will
             translate it into structured fields before generating anything.
           </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
+              Learning level
+            </span>
+            <div className="grid grid-cols-2 gap-1 rounded border border-border bg-bg p-1 sm:w-[260px]">
+              {LEARNING_MODES.map((mode) => (
+                <button
+                  key={mode.value}
+                  type="button"
+                  aria-pressed={learningMode === mode.value}
+                  onClick={() => setLearningMode(mode.value)}
+                  className={`rounded px-2 py-2 text-xs ${
+                    learningMode === mode.value
+                      ? "bg-accent text-bg"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="max-h-[420px] min-h-[220px] space-y-3 overflow-y-auto p-4 xl:max-h-[38vh]">
@@ -451,11 +582,11 @@ export default function Chat() {
       <aside className="space-y-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
         <section className="rounded border border-border bg-panel p-4">
           <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            Start with a pair
+            New? Start here
           </h2>
           <p className="mt-2 text-xs leading-relaxed text-muted">
-            No setup yet? Pick a pair and Planifier will look for a few
-            educational angles to start from.
+            If you do not know what setup to write, pick a pair and Planifier
+            will give you a few practice angles to choose from.
           </p>
 
           <div className="mt-3">
@@ -514,7 +645,7 @@ export default function Chat() {
             disabled={exploreBusy || !explorePair.trim()}
             className="mt-3 w-full rounded bg-accent px-3 py-3 text-sm font-medium text-bg disabled:opacity-40"
           >
-            {exploreBusy ? "Finding angles..." : "Find starting angles"}
+            {exploreBusy ? "Finding angles..." : "Find beginner starting angles"}
           </button>
 
           {exploreResult && (
@@ -602,6 +733,14 @@ export default function Chat() {
           )}
         </section>
 
+        <ScenarioChart
+          historicalScenario={historicalScenario}
+          historicalBusy={historicalBusy}
+          historicalError={historicalError}
+          onRequestHistorical={generateHistoricalScenarioMap}
+          onUseScenario={applyScenarioNote}
+        />
+
         <section ref={buildRef} className="rounded border border-border bg-panel p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
@@ -632,13 +771,23 @@ export default function Chat() {
               placeholder="4H"
             />
             <HoldingPeriodPicker value={inputs.holdingPeriod} onPick={updateInputs} />
-            <InputRow
-              label="Risk"
-              value={inputs.riskPercent}
-              missing={missing.includes("riskPercent")}
-              placeholder="1%"
-            />
+            <FixedRiskRow missing={missing.includes("riskPercent")} />
           </div>
+
+          {learningMode === "beginner" && (
+            <div className="mt-3 rounded border border-border bg-bg p-3">
+              <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                Still learning
+              </h3>
+              <div className="mt-2 space-y-2">
+                {BEGINNER_FIELD_HELP.map((item) => (
+                  <p key={item.term} className="text-xs leading-relaxed text-muted">
+                    <span className="text-ink">{item.term}:</span> {item.help}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
 
           {mismatch && (
             <div className="mt-3 rounded border border-danger/50 bg-danger/10 p-3 text-xs leading-relaxed text-danger">
@@ -680,11 +829,32 @@ export default function Chat() {
 
           <div className="mt-4">
             <label className="mb-1 block text-xs text-muted">Chart context</label>
+            {learningMode === "beginner" && (
+              <div className="mb-2 grid grid-cols-2 gap-1">
+                {CHART_CONTEXT_PROMPTS.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() =>
+                      updateInputs({
+                        chartNote: appendChartContextPrompt(
+                          inputs.chartNote,
+                          item.prompt
+                        ),
+                      })
+                    }
+                    className="rounded border border-border px-2 py-2 text-left text-[11px] text-muted hover:border-muted hover:text-ink"
+                  >
+                    Add {item.label.toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea
               value={inputs.chartNote ?? ""}
               onChange={(e) => updateInputs({ chartNote: e.target.value })}
               rows={6}
-              placeholder="Trend, levels, current behavior, and invalidation."
+              placeholder="Answer in pieces: trend, key level, what price is doing now, and what would prove the idea wrong."
               className={`w-full rounded border bg-bg p-2 text-xs leading-relaxed ${
                 missing.includes("chart") ? "border-danger" : "border-border"
               }`}
@@ -692,7 +862,7 @@ export default function Chat() {
             <p className="mt-1 text-[10px] text-muted">
               {imageDataUrl
                 ? "Image uploaded. Notes are still useful."
-                : `${chartChars}/${MIN_CHART_NOTE_CHARS} useful characters minimum.`}
+                : `${chartChars}/${MIN_CHART_NOTE_CHARS} useful characters minimum. Name a trend, level, current behavior, and wrong-if condition.`}
             </p>
           </div>
 
@@ -770,6 +940,21 @@ function InputRow({
   );
 }
 
+function FixedRiskRow({ missing }: { missing: boolean }) {
+  return (
+    <div className="grid grid-cols-[92px_minmax(0,1fr)] items-center gap-2">
+      <span className="text-xs text-muted">Risk</span>
+      <span
+        className={`min-h-9 rounded border px-3 py-2 text-sm ${
+          missing ? "border-danger/60 text-danger" : "border-accent/50 text-accent"
+        }`}
+      >
+        Fixed at {FIXED_RISK_PERCENT}
+      </span>
+    </div>
+  );
+}
+
 function HoldingPeriodPicker({
   value,
   onPick,
@@ -837,6 +1022,29 @@ function normalizeHoldingPeriod(value: PlanInputs["holdingPeriod"]): PlanInputs[
     return value;
   }
   return "";
+}
+
+function normalizeScenarioHolding(
+  style: (typeof EXPLORE_STYLES)[number],
+  current: PlanInputs["holdingPeriod"]
+): Exclude<PlanInputs["holdingPeriod"], "" | undefined> {
+  if (
+    style === "Scalp" ||
+    style === "Day" ||
+    style === "Swing" ||
+    style === "Position"
+  ) {
+    return style;
+  }
+  if (
+    current === "Scalp" ||
+    current === "Day" ||
+    current === "Swing" ||
+    current === "Position"
+  ) {
+    return current;
+  }
+  return "Swing";
 }
 
 function formatTimestamp(value: string): string {

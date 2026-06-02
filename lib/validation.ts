@@ -1,4 +1,5 @@
 import { checkTimeframeAlignment, normalizeHoldingPeriod } from "./plan/timeframe";
+import { isFixedRiskPercent } from "./plan/risk";
 
 export type PlanInputs = {
   ticker?: string;
@@ -20,8 +21,6 @@ export const MIN_CHART_NOTE_CHARS = 80;
 
 const TICKER_RE = /^[A-Z0-9]{1,6}([.\-/][A-Z0-9]{1,6})?$/i;
 const TIMEFRAME_RE = /^(\d+)\s?(s|m|h|H|d|D|w|W|M)$|^(1m|3m|5m|15m|30m|1H|2H|4H|6H|12H|1D|1W|1M|daily|weekly|monthly)$/i;
-const RISK_RE = /^(\d+(\.\d+)?)\s?%?$/;
-
 export function hasUsefulChartNote(note?: string): boolean {
   const trimmed = note?.trim() ?? "";
   if (trimmed.length < MIN_CHART_NOTE_CHARS) return false;
@@ -35,7 +34,7 @@ export function validateInputs(input: PlanInputs): MissingField[] {
   if (!input.ticker || !TICKER_RE.test(input.ticker.trim())) missing.push("ticker");
   if (!input.timeframe || !TIMEFRAME_RE.test(input.timeframe.trim())) missing.push("timeframe");
   if (!input.holdingPeriod) missing.push("holdingPeriod");
-  if (!input.riskPercent || !RISK_RE.test(input.riskPercent.trim())) missing.push("riskPercent");
+  if (!isFixedRiskPercent(input.riskPercent)) missing.push("riskPercent");
   if (!input.hasImage && !hasUsefulChartNote(input.chartNote)) {
     missing.push("chart");
   }
@@ -47,7 +46,7 @@ export function missingFieldsMessage(missing: MissingField[]): string {
     ticker: "asset ticker",
     timeframe: "chart timeframe",
     holdingPeriod: "holding period",
-    riskPercent: "risk per trade %",
+    riskPercent: "fixed 1% risk guardrail",
     chart: `chart screenshot or ${MIN_CHART_NOTE_CHARS}+ useful characters of written description`,
   };
   const list = missing.map((m) => labels[m]).join(", ");

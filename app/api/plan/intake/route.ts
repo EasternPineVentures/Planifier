@@ -7,6 +7,7 @@ import {
   validateInputs,
   type PlanInputs,
 } from "@/lib/validation";
+import { FIXED_RISK_PERCENT, isFixedRiskPercent } from "@/lib/plan/risk";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -65,7 +66,8 @@ export async function POST(req: Request) {
         "You are Planifier's intake assistant for educational paper-trading plans. " +
         "Extract structured planning inputs from plain English. Do not invent missing facts. " +
         "Keep existing inputs unless the latest message clearly replaces them. " +
-        "Normalize symbols to uppercase, normalize common timeframes like 4h to 4H, and normalize risk to a percent string. " +
+        `Normalize symbols to uppercase and normalize common timeframes like 4h to 4H. Risk is fixed at ${FIXED_RISK_PERCENT}; do not extract or change user risk. ` +
+        `Always return riskPercent as ${FIXED_RISK_PERCENT}. If the user mentions a different risk, briefly say Planifier keeps risk fixed at ${FIXED_RISK_PERCENT}. ` +
         "Only use holdingPeriod values Scalp, Day, Swing, or Position. Infer holding period only from clear language such as scalp, intraday, day trade, swing, or position. " +
         "Build chartNote from the user's actual chart context: trend, levels, current price behavior, uncertainty, and invalidation. " +
         "If chart context is too vague, leave chartNote null and ask for concrete levels or structure. " +
@@ -88,7 +90,12 @@ export async function POST(req: Request) {
     intake = heuristicIntake(message, currentInputs);
   }
 
+  const attemptedRisk = matchRisk(message);
   const mergedInputs = mergeInputs(currentInputs, intake.inputs);
+  const assistantMessage =
+    attemptedRisk && !isFixedRiskPercent(attemptedRisk)
+      ? withFixedRiskNotice(intake.assistantMessage)
+      : intake.assistantMessage;
   const planInputs: PlanInputs = { ...mergedInputs, hasImage: !!imageDataUrl };
   const missing = validateInputs(planInputs);
   const mismatch =
@@ -98,6 +105,7 @@ export async function POST(req: Request) {
 
   return Response.json({
     ...intake,
+    assistantMessage,
     inputs: mergedInputs,
     missing,
     mismatch,
@@ -142,7 +150,7 @@ function cleanInputs(input: z.infer<typeof PartialInputsSchema>): PlanInputs {
     ticker: cleanString(input.ticker)?.toUpperCase() ?? "",
     timeframe: cleanString(input.timeframe) ?? "",
     holdingPeriod: input.holdingPeriod ?? "",
-    riskPercent: cleanString(input.riskPercent) ?? "",
+    riskPercent: FIXED_RISK_PERCENT,
     chartNote: cleanString(input.chartNote) ?? "",
   };
 }
@@ -155,7 +163,7 @@ function mergeInputs(
     ticker: cleanString(next.ticker)?.toUpperCase() ?? current.ticker ?? "",
     timeframe: cleanString(next.timeframe) ?? current.timeframe ?? "",
     holdingPeriod: next.holdingPeriod ?? current.holdingPeriod ?? "",
-    riskPercent: cleanString(next.riskPercent) ?? current.riskPercent ?? "",
+    riskPercent: FIXED_RISK_PERCENT,
     chartNote: cleanString(next.chartNote) ?? current.chartNote ?? "",
   };
 }
@@ -169,7 +177,7 @@ function heuristicIntake(message: string, currentInputs: PlanInputs): IntakeResu
   const ticker = matchTicker(message) ?? currentInputs.ticker ?? null;
   const timeframe = matchTimeframe(message) ?? currentInputs.timeframe ?? null;
   const holdingPeriod = matchHoldingPeriod(message) ?? currentInputs.holdingPeriod ?? null;
-  const riskPercent = matchRisk(message) ?? currentInputs.riskPercent ?? null;
+  const riskPercent = FIXED_RISK_PERCENT;
   const chartNote =
     message.trim().length >= 80 ? message.trim() : currentInputs.chartNote ?? null;
 
@@ -184,15 +192,20 @@ function heuristicIntake(message: string, currentInputs: PlanInputs): IntakeResu
         holdingPeriod === "Position"
           ? holdingPeriod
           : null,
-      riskPercent: riskPercent || null,
+      riskPercent,
       chartNote: chartNote || null,
     },
     userQuestion: /\?/.test(message) ? message.trim() : null,
     assistantMessage:
-      "I captured what I could from that. Add any missing asset, timeframe, risk, or concrete chart levels before building the plan.",
+      "I captured what I could from that. Add any missing asset, timeframe, holding period, or concrete chart levels before building the plan.",
     extractedFields: [],
     confidence: "low",
   };
+}
+
+function withFixedRiskNotice(message: string): string {
+  const notice = `Planifier keeps risk fixed at ${FIXED_RISK_PERCENT}, so I kept the plan there.`;
+  return message.includes(notice) ? message : `${message} ${notice}`;
 }
 
 function matchTicker(message: string): string | null {

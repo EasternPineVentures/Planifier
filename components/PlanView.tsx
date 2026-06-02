@@ -33,6 +33,44 @@ export default function PlanView({
         <p className="text-muted">{plan.disclaimer}</p>
       </PlanSection>
 
+      {plan.beginnerGuide && (
+        <PlanSection
+          title="Still learning translation"
+          summary="Simple meaning behind the plan"
+          defaultOpen
+          accent
+        >
+          <div className="space-y-3">
+            <p>{plan.beginnerGuide.simpleSummary}</p>
+            <div>
+              <div className="text-xs uppercase text-muted">Key terms</div>
+              <dl className="mt-2 space-y-2">
+                {plan.beginnerGuide.keyTerms.map((item) => (
+                  <div key={item.term} className="border-t border-border/70 pt-2">
+                    <dt className="font-medium text-ink">{item.term}</dt>
+                    <dd className="mt-1 text-muted">{item.meaning}</dd>
+                    <dd className="mt-1 text-xs text-muted">
+                      In this plan: {item.inThisPlan}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div>
+              <div className="text-xs uppercase text-muted">Step by step</div>
+              <ol className="mt-2 list-decimal space-y-1 pl-5">
+                {plan.beginnerGuide.stepByStep.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </div>
+            <p className="border-l border-accent/60 pl-3 text-xs leading-relaxed text-muted">
+              {plan.beginnerGuide.riskTranslation}
+            </p>
+          </div>
+        </PlanSection>
+      )}
+
       {plan.timeframeMismatchWarning && (
         <div className="rounded border border-danger/50 bg-danger/10 p-3 text-danger">
           <strong>Timeframe mismatch:</strong> {plan.timeframeMismatchWarning}

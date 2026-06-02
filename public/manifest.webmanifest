@@ -2,7 +2,9 @@
   "name": "Planifier",
   "short_name": "Planifier",
   "description": "Turn messy chart thoughts into structured trading plans.",
+  "id": "https://planifier.cloud/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0B0F14",
   "theme_color": "#0B0F14"

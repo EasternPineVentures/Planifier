@@ -54,4 +54,42 @@ describe("PlanSchema strategyNotes.learningExample", () => {
 
     expect(parsed.strategyNotes.learningExample).toContain("support");
   });
+
+  it("accepts optional beginnerGuide when Still Learning mode provides it", () => {
+    const parsed = PlanSchema.parse({
+      ...basePlan,
+      beginnerGuide: {
+        simpleSummary:
+          "This is a practice plan that waits for proof before doing anything.",
+        keyTerms: [
+          {
+            term: "Confirmation",
+            meaning: "A clue that makes the idea stronger.",
+            inThisPlan: "Wait for support to hold before practicing the setup.",
+          },
+          {
+            term: "Invalidation",
+            meaning: "The line where the idea is wrong.",
+            inThisPlan: "The idea is wrong below 100.",
+          },
+          {
+            term: "Risk",
+            meaning: "The small practice loss limit.",
+            inThisPlan: "Risk is fixed at 1%.",
+          },
+        ],
+        stepByStep: [
+          "Read the idea.",
+          "Wait for confirmation.",
+          "Respect invalidation.",
+        ],
+        riskTranslation:
+          "Risk is locked at 1%, so the practice plan focuses on losing small.",
+      },
+    });
+
+    expect(parsed.beginnerGuide?.keyTerms.map((item) => item.term)).toContain(
+      "Invalidation"
+    );
+  });
 });

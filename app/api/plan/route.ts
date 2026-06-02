@@ -8,6 +8,8 @@ import {
   type PlanInputs,
 } from "@/lib/validation";
 import { PlanSchema } from "@/lib/plan/schema";
+import type { Plan } from "@/lib/plan/schema";
+import { FIXED_RISK_NUMERIC, FIXED_RISK_PERCENT } from "@/lib/plan/risk";
 import { planError } from "@/lib/plan/errors";
 import { requireUserId } from "@/lib/db/users";
 import { db, schema } from "@/lib/db/client";
@@ -21,11 +23,12 @@ const BodySchema = z.object({
     ticker: z.string(),
     timeframe: z.string(),
     holdingPeriod: z.enum(["Scalp", "Day", "Swing", "Position"]),
-    riskPercent: z.string(),
+    riskPercent: z.string().optional(),
     chartNote: z.string().optional(),
   }),
   imageDataUrl: z.string().nullable().optional(),
   userQuestion: z.string().optional(),
+  learningMode: z.enum(["standard", "beginner"]).optional().default("standard"),
 });
 
 export async function POST(req: Request) {
@@ -45,31 +48,39 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return Response.json(planError("MISSING_INPUT"), { status: 400 });
   }
-  const { inputs, imageDataUrl, userQuestion } = parsed.data;
+  const { inputs, imageDataUrl, userQuestion, learningMode } = parsed.data;
+  const fixedInputs = { ...inputs, riskPercent: FIXED_RISK_PERCENT };
 
-  const planInputs: PlanInputs = { ...inputs, hasImage: !!imageDataUrl };
+  const planInputs: PlanInputs = { ...fixedInputs, hasImage: !!imageDataUrl };
   const missing = validateInputs(planInputs);
   if (missing.length > 0) {
     return Response.json(planError("MISSING_INPUT", { missing }), { status: 422 });
   }
 
-  const mismatch = inferTimeframeMismatch(inputs.timeframe, inputs.holdingPeriod);
+  const mismatch = inferTimeframeMismatch(
+    fixedInputs.timeframe,
+    fixedInputs.holdingPeriod
+  );
 
   const systemPrompt =
     getRuntimeSystemPrompt() +
     `\n\n--- OUTPUT MODE ---\n` +
     `Return a STRUCTURED plan matching the provided JSON schema. ` +
     `Do not omit the disclaimer field. ` +
-    `If the chart info is insufficient to set a numeric invalidation price, set invalidation.price to null and explain in the condition.`;
+    `If the chart info is insufficient to set a numeric invalidation price, set invalidation.price to null and explain in the condition. ` +
+    (learningMode === "beginner"
+      ? `The user selected Still Learning mode. Include beginnerGuide and explain terms in simple, concrete language.`
+      : `The user selected Standard mode. Keep the core plan concise; beginnerGuide may be omitted.`);
 
   const contextLines = [
-    `Ticker: ${inputs.ticker}`,
-    `Timeframe: ${inputs.timeframe}`,
-    `Holding period: ${inputs.holdingPeriod}`,
-    `Risk per trade: ${inputs.riskPercent}`,
-    inputs.chartNote ? `Chart note: ${inputs.chartNote}` : null,
+    `Ticker: ${fixedInputs.ticker}`,
+    `Timeframe: ${fixedInputs.timeframe}`,
+    `Holding period: ${fixedInputs.holdingPeriod}`,
+    `Risk per trade: ${FIXED_RISK_PERCENT} (fixed by Planifier; user cannot change this)`,
+    fixedInputs.chartNote ? `Chart note: ${fixedInputs.chartNote}` : null,
     mismatch ? `Timeframe mismatch (must flag): ${mismatch}` : null,
     userQuestion ? `User question: ${userQuestion}` : null,
+    `Learning mode: ${learningMode === "beginner" ? "Still Learning" : "Standard"}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -88,7 +99,7 @@ export async function POST(req: Request) {
 
   const { model } = pickModel({ task: "plan", needsVision: !!imageDataUrl });
 
-  let plan;
+  let plan: Plan;
   try {
     const result = await generateObject({
       model,
@@ -98,13 +109,19 @@ export async function POST(req: Request) {
       temperature: 0.3,
     });
     const sourceLinks = buildSourceLinks({
-      assetTicker: inputs.ticker,
+      assetTicker: fixedInputs.ticker,
     });
-    plan = {
-      ...result.object,
-      // App-generated deterministic links; never model-invented.
-      trustedSourceLinks: sourceLinks,
-    };
+    plan = ensureBeginnerGuide(
+      {
+        ...result.object,
+        // App-generated deterministic links; never model-invented.
+        trustedSourceLinks: sourceLinks,
+      },
+      {
+        inputs: fixedInputs,
+        learningMode,
+      }
+    );
   } catch (err) {
     console.error("[planifier] generateObject failed", err);
     return Response.json(planError("AI_SCHEMA_FAILURE"), { status: 502 });
@@ -116,11 +133,11 @@ export async function POST(req: Request) {
       .insert(schema.plans)
       .values({
         userId,
-        ticker: inputs.ticker,
-        timeframe: inputs.timeframe,
-        holdingPeriod: inputs.holdingPeriod,
-        riskPercent: inputs.riskPercent.replace("%", "").trim(),
-        chartNote: inputs.chartNote ?? null,
+        ticker: fixedInputs.ticker,
+        timeframe: fixedInputs.timeframe,
+        holdingPeriod: fixedInputs.holdingPeriod,
+        riskPercent: FIXED_RISK_NUMERIC,
+        chartNote: fixedInputs.chartNote ?? null,
         plan,
       })
       .returning({ id: schema.plans.id });
@@ -134,4 +151,62 @@ export async function POST(req: Request) {
       { status: 503 }
     );
   }
+}
+
+function ensureBeginnerGuide(
+  plan: Plan,
+  {
+    inputs,
+    learningMode,
+  }: {
+    inputs: {
+      ticker: string;
+      timeframe: string;
+      holdingPeriod: "Scalp" | "Day" | "Swing" | "Position";
+      riskPercent?: string;
+      chartNote?: string;
+    };
+    learningMode: "standard" | "beginner";
+  }
+): Plan {
+  if (learningMode !== "beginner" || plan.beginnerGuide) return plan;
+
+  return {
+    ...plan,
+    beginnerGuide: {
+      simpleSummary:
+        `This is a practice plan for ${inputs.ticker} on the ${inputs.timeframe} chart. ` +
+        "It is not telling you what to do. It is helping you decide what must happen before the idea is strong enough to practice.",
+      keyTerms: [
+        {
+          term: "Timeframe",
+          meaning: "The amount of time each chart candle represents.",
+          inThisPlan: `${inputs.timeframe} means each candle summarizes about ${inputs.timeframe} of price movement.`,
+        },
+        {
+          term: "Confirmation",
+          meaning: "A clue you wait for before trusting the idea more.",
+          inThisPlan: plan.examplePlan.entryTrigger,
+        },
+        {
+          term: "Invalidation",
+          meaning: "The line where the idea is wrong and you stop pretending it is still working.",
+          inThisPlan: plan.invalidation.condition,
+        },
+        {
+          term: "Risk",
+          meaning: "The small paper-trading amount you allow the practice idea to lose before stepping away.",
+          inThisPlan: `Planifier keeps this fixed at ${FIXED_RISK_PERCENT} so beginners practice with the same guardrail every time.`,
+        },
+      ],
+      stepByStep: [
+        "First, read the chart idea in plain English.",
+        "Next, check what must confirm the idea.",
+        "Then, check what would make the idea wrong.",
+        "Only paper trade the plan if the checklist rules are still true.",
+      ],
+      riskTranslation:
+        `Risk is locked at ${FIXED_RISK_PERCENT}. In simple words: this plan practices losing small and stopping when the idea is wrong.`,
+    },
+  };
 }

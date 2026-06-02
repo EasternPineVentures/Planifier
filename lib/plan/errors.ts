@@ -4,7 +4,7 @@
  */
 export const PLAN_ERROR_MESSAGES = {
   MISSING_INPUT:
-    "Planifier needs more context before building a useful plan. Add the asset, timeframe, holding period, risk per trade, and chart context.",
+    "Planifier needs more context before building a useful plan. Add the asset, timeframe, holding period, and chart context. Risk is fixed at 1%.",
   AI_SCHEMA_FAILURE:
     "Planifier needs more concrete chart context. Add what price is doing, key levels, trend or structure, and what would invalidate the idea.",
   DATABASE_FAILURE:

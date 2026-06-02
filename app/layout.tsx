@@ -1,16 +1,40 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { getAppUrl } from "@/lib/appUrl";
 import "./globals.css";
 
 // Entire app is auth-gated and personalized; no value in static prerender.
 export const dynamic = "force-dynamic";
 
+const appUrl = getAppUrl();
+const metadataTitle = "Planifier - Trading Planning Assistant";
+const metadataDescription =
+  "Turn confusing charts into structured educational trade plans. Paper-trading planning only; not financial advice.";
+
 export const metadata: Metadata = {
-  title: "Planifier — Trading Planning Assistant",
-  description:
-    "Turn confusing charts into structured plans. Not financial advice. Educational and paper-trading only.",
+  metadataBase: appUrl,
+  title: {
+    default: metadataTitle,
+    template: "%s | Planifier",
+  },
+  description: metadataDescription,
   applicationName: "Planifier",
   manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: metadataTitle,
+    description: metadataDescription,
+    url: "/",
+    siteName: "Planifier",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: metadataTitle,
+    description: metadataDescription,
+  },
   appleWebApp: {
     capable: true,
     title: "Planifier",

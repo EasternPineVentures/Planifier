@@ -43,4 +43,14 @@ describe("chart context validation", () => {
       })
     ).not.toContain("chart");
   });
+
+  it("keeps risk locked to 1%", () => {
+    const missing = validateInputs({
+      ...baseInputs,
+      riskPercent: "2%",
+      hasImage: true,
+    });
+
+    expect(missing).toContain("riskPercent");
+  });
 });

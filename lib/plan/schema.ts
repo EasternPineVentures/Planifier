@@ -53,7 +53,7 @@ export const PlanSchema = z.object({
     positionSizingNote: z
       .string()
       .describe(
-        "Education on sizing from the user's stated risk %. Formula, not a dollar amount."
+        "Education on sizing from Planifier's fixed 1% risk. Formula, not a dollar amount."
       ),
   }),
   decisionChecklist: z
@@ -110,9 +110,46 @@ export const PlanSchema = z.object({
     missingPieces: z
       .array(z.string())
       .describe(
-        "Gaps in the user's plan. Empty array if complete. List 'Exact invalidation level' and 'Risk per trade' if absent."
+        "Gaps in the user's plan. Empty array if complete. List 'Exact invalidation level' if absent. Do not list risk unless the fixed 1% app guardrail is missing."
       ),
   }),
+  beginnerGuide: z
+    .object({
+      simpleSummary: z
+        .string()
+        .describe(
+          "Explain the plan in very simple language for a brand-new learner."
+        ),
+      keyTerms: z
+        .array(
+          z.object({
+            term: z.string(),
+            meaning: z.string(),
+            inThisPlan: z.string(),
+          })
+        )
+        .min(3)
+        .max(8)
+        .describe(
+          "Plain-language definitions for terms used in this exact plan."
+        ),
+      stepByStep: z
+        .array(z.string())
+        .min(3)
+        .max(6)
+        .describe(
+          "Short sequence explaining what the learner should check, in order."
+        ),
+      riskTranslation: z
+        .string()
+        .describe(
+          "Explain fixed 1% risk in simple words, without dollar advice."
+        ),
+    })
+    .optional()
+    .describe(
+      "Optional still-learning translation layer for beginner mode plans."
+    ),
   trustedSourceLinks: z
     .array(
       z.object({

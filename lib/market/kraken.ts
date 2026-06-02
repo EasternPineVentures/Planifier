@@ -24,6 +24,15 @@ export type MarketSnapshot = {
   generatedAt: string;
 };
 
+export type KrakenHistoricalCandles = {
+  source: "kraken_public_ohlc";
+  pair: string;
+  krakenPair: string;
+  intervalMinutes: number;
+  candles: Candle[];
+  generatedAt: string;
+};
+
 const INTERVALS: Record<string, number> = {
   "1m": 1,
   "5m": 5,
@@ -64,6 +73,24 @@ export async function getKrakenMarketSnapshot({
   pair: string;
   timeframe?: string;
 }): Promise<MarketSnapshot> {
+  const historical = await getKrakenHistoricalCandles({ pair, timeframe, limit: 120 });
+  return summarizeCandles({
+    pair: historical.pair,
+    krakenPair: historical.krakenPair,
+    intervalMinutes: historical.intervalMinutes,
+    candles: historical.candles,
+  });
+}
+
+export async function getKrakenHistoricalCandles({
+  pair,
+  timeframe,
+  limit = 240,
+}: {
+  pair: string;
+  timeframe?: string;
+  limit?: number;
+}): Promise<KrakenHistoricalCandles> {
   const intervalMinutes = intervalToMinutes(timeframe);
   const krakenPair = normalizeKrakenPair(pair);
   const url = new URL("https://api.kraken.com/0/public/OHLC");
@@ -98,12 +125,14 @@ export async function getKrakenMarketSnapshot({
 
   // Kraken includes the current not-yet-committed candle as the last row.
   const committed = candles.length > 25 ? candles.slice(0, -1) : candles;
-  return summarizeCandles({
+  return {
+    source: "kraken_public_ohlc",
     pair,
     krakenPair,
     intervalMinutes,
-    candles: committed.slice(-120),
-  });
+    candles: committed.slice(-limit),
+    generatedAt: new Date().toISOString(),
+  };
 }
 
 function parseCandle(row: unknown): Candle | null {
