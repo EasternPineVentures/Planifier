@@ -11,6 +11,7 @@ import { PlanSchema } from "@/lib/plan/schema";
 import type { Plan } from "@/lib/plan/schema";
 import { FIXED_RISK_NUMERIC, FIXED_RISK_PERCENT } from "@/lib/plan/risk";
 import { planError } from "@/lib/plan/errors";
+import { buildFallbackPlan } from "@/lib/plan/fallbackPlan";
 import { requireUserId } from "@/lib/db/users";
 import { db, schema } from "@/lib/db/client";
 import { buildSourceLinks } from "@/lib/sources/sourceLinks";
@@ -100,6 +101,10 @@ export async function POST(req: Request) {
   const { model } = pickModel({ task: "plan", needsVision: !!imageDataUrl });
 
   let plan: Plan;
+  const sourceLinks = buildSourceLinks({
+    assetTicker: fixedInputs.ticker,
+  });
+
   try {
     const result = await generateObject({
       model,
@@ -107,9 +112,6 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: [{ role: "user", content: userContent }],
       temperature: 0.3,
-    });
-    const sourceLinks = buildSourceLinks({
-      assetTicker: fixedInputs.ticker,
     });
     plan = ensureBeginnerGuide(
       {
@@ -124,7 +126,12 @@ export async function POST(req: Request) {
     );
   } catch (err) {
     console.error("[planifier] generateObject failed", err);
-    return Response.json(planError("AI_SCHEMA_FAILURE"), { status: 502 });
+    plan = buildFallbackPlan({
+      inputs: fixedInputs,
+      learningMode,
+      timeframeMismatchWarning: mismatch,
+      trustedSourceLinks: sourceLinks,
+    });
   }
 
   // Persist

@@ -175,6 +175,7 @@ export default function Chat() {
   );
   const ready = missing.length === 0;
   const chartChars = inputs.chartNote?.trim().length ?? 0;
+  const missingLabels = missing.map((item) => FIELD_LABELS[item]);
 
   function updateInputs(next: Partial<PlanInputs>) {
     setInputs((current) => ({
@@ -355,7 +356,7 @@ export default function Chat() {
       ...current,
       {
         role: "assistant",
-        content: `Loaded "${candidate.label}" into the plan fields. Read the chart context on the right, edit anything you disagree with, then build the structured plan.`,
+        content: `Loaded "${candidate.label}" into the plan fields. Next: use the Ready to build button above, or review the fields on the right before building.`,
       },
     ]);
     window.setTimeout(() => {
@@ -506,6 +507,19 @@ export default function Chat() {
               ))}
             </div>
           </div>
+          <BuilderStatus
+            ready={ready}
+            hasPlan={!!structuredPlan}
+            planBusy={planBusy}
+            missingLabels={missingLabels}
+            onBuild={buildStructuredPlan}
+            onReview={() =>
+              buildRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              })
+            }
+          />
         </div>
 
         <div className="max-h-[420px] min-h-[220px] space-y-3 overflow-y-auto p-4 xl:max-h-[38vh]">
@@ -744,7 +758,7 @@ export default function Chat() {
         <section ref={buildRef} className="rounded border border-border bg-panel p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-              What I understand
+              Step 3: build the plan
             </h2>
             <span
               className={`rounded border px-2 py-1 text-[10px] ${
@@ -879,7 +893,7 @@ export default function Chat() {
 
           {missing.length > 0 && (
             <div className="mt-3 rounded border border-border p-3 text-xs leading-relaxed text-muted">
-              Need: {missing.map((item) => FIELD_LABELS[item]).join(", ")}.
+              Next: add {missingLabels.join(", ")}.
             </div>
           )}
 
@@ -911,6 +925,73 @@ export default function Chat() {
           </details>
         </section>
       </aside>
+    </div>
+  );
+}
+
+function BuilderStatus({
+  ready,
+  hasPlan,
+  planBusy,
+  missingLabels,
+  onBuild,
+  onReview,
+}: {
+  ready: boolean;
+  hasPlan: boolean;
+  planBusy: boolean;
+  missingLabels: string[];
+  onBuild: () => void;
+  onReview: () => void;
+}) {
+  const stepText = hasPlan
+    ? "Plan built. Review it below, then save or journal from the plan view."
+    : ready
+      ? "Ready to build. The app has the asset, timeframe, style, fixed risk, and chart context."
+      : `Next: add ${missingLabels.join(", ")}.`;
+
+  return (
+    <div className="mt-3 rounded border border-border bg-bg p-3">
+      <div className="grid grid-cols-3 gap-1 text-[10px] uppercase tracking-wider text-muted">
+        <span className="rounded border border-border px-2 py-1">1. Describe</span>
+        <span className="rounded border border-border px-2 py-1">2. Check</span>
+        <span
+          className={`rounded border px-2 py-1 ${
+            ready || hasPlan ? "border-accent/50 text-accent" : "border-border"
+          }`}
+        >
+          3. Build
+        </span>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs leading-relaxed text-muted">{stepText}</p>
+        {hasPlan ? (
+          <button
+            type="button"
+            onClick={onReview}
+            className="shrink-0 rounded border border-border px-3 py-2 text-xs text-ink hover:border-muted"
+          >
+            Review plan
+          </button>
+        ) : ready ? (
+          <button
+            type="button"
+            onClick={onBuild}
+            disabled={planBusy}
+            className="shrink-0 rounded bg-accent px-3 py-2 text-xs font-medium text-bg disabled:opacity-40"
+          >
+            {planBusy ? "Building..." : "Build now"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onReview}
+            className="shrink-0 rounded border border-border px-3 py-2 text-xs text-ink hover:border-muted"
+          >
+            Review fields
+          </button>
+        )}
+      </div>
     </div>
   );
 }

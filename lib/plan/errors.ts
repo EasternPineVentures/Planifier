@@ -6,7 +6,7 @@ export const PLAN_ERROR_MESSAGES = {
   MISSING_INPUT:
     "Planifier needs more context before building a useful plan. Add the asset, timeframe, holding period, and chart context. Risk is fixed at 1%.",
   AI_SCHEMA_FAILURE:
-    "Planifier needs more concrete chart context. Add what price is doing, key levels, trend or structure, and what would invalidate the idea.",
+    "Planifier could not format the AI plan cleanly. Try again, or use the starter plan as a safe first draft.",
   DATABASE_FAILURE:
     "The plan was generated, but saving failed. Try again before relying on this session.",
   UNAUTHORIZED:
