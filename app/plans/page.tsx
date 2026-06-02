@@ -34,7 +34,7 @@ export default async function PlansPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6">
       <Nav />
-      <header className="rounded border border-border bg-panel p-4">
+      <header className="surface-panel rounded border border-border bg-panel p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="font-mono text-lg">My plans</h2>
@@ -52,7 +52,7 @@ export default async function PlansPage() {
       </header>
 
       {rows.length === 0 ? (
-        <section className="rounded border border-border bg-panel p-4">
+        <section className="surface-panel rounded border border-border bg-panel p-4">
           <p className="text-sm text-muted">
             No saved plans yet.
           </p>
@@ -85,7 +85,7 @@ export default async function PlansPage() {
                   : null;
 
                 return (
-                  <article className="rounded border border-border bg-panel p-4 transition-colors hover:border-muted hover:bg-bg/40">
+                  <article className="surface-panel rounded border border-border bg-panel p-4 transition-colors hover:border-muted hover:bg-bg/40">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-mono text-base text-ink">{detailsLine}</div>
@@ -149,7 +149,7 @@ function getDetailsLine(
   if (!safeTicker || !safeTimeframe || !safeHolding) {
     return "Plan details incomplete";
   }
-  return `${safeTicker} · ${safeTimeframe} · ${safeHolding}`;
+  return `${safeTicker} / ${safeTimeframe} / ${safeHolding}`;
 }
 
 function trimRisk(value: string): string {

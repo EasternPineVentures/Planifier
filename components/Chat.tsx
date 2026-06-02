@@ -478,7 +478,7 @@ export default function Chat() {
 
   return (
     <div className="grid flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.55fr)]">
-      <section className="flex flex-col rounded border border-border bg-panel xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]">
+      <section className="surface-panel flex flex-col rounded border border-border bg-panel xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]">
         <div className="border-b border-border p-4">
           <h2 className="text-sm font-medium">Plain-English plan builder</h2>
           <p className="mt-1 text-xs leading-relaxed text-muted">
@@ -594,7 +594,7 @@ export default function Chat() {
       </section>
 
       <aside className="space-y-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
-        <section className="rounded border border-border bg-panel p-4">
+        <section className="surface-panel rounded border border-border bg-panel p-4">
           <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
             New? Start here
           </h2>
@@ -755,7 +755,7 @@ export default function Chat() {
           onUseScenario={applyScenarioNote}
         />
 
-        <section ref={buildRef} className="rounded border border-border bg-panel p-4">
+        <section ref={buildRef} className="surface-panel rounded border border-border bg-panel p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
               Step 3: build the plan
@@ -907,7 +907,7 @@ export default function Chat() {
           </button>
         </section>
 
-        <section className="rounded border border-border bg-panel p-4">
+        <section className="surface-panel rounded border border-border bg-panel p-4">
           <details>
             <summary className="cursor-pointer list-none font-mono text-xs uppercase tracking-wider text-muted">
               Chart examples

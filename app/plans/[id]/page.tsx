@@ -39,10 +39,10 @@ export default async function PlanDetail({ params }: Props) {
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-4 px-4 py-6">
       <Nav />
-      <header className="flex items-baseline gap-3 border-b border-border pb-2">
+      <header className="surface-panel flex flex-wrap items-baseline gap-3 rounded border border-border bg-panel p-4">
         <h2 className="font-mono text-lg">{row.ticker}</h2>
         <span className="text-xs text-muted">
-          {row.timeframe} · {row.holdingPeriod} · risk {row.riskPercent}%
+          {row.timeframe} / {row.holdingPeriod} / risk {row.riskPercent}%
         </span>
         <span className="ml-auto text-[11px] text-muted">
           {new Date(row.createdAt).toLocaleString()}
@@ -51,7 +51,7 @@ export default async function PlanDetail({ params }: Props) {
 
       <PlanView plan={plan} />
 
-      <section className="rounded border border-border bg-panel p-3">
+      <section className="surface-panel rounded border border-border bg-panel p-3">
         <h3 className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted">
           Journal entries
         </h3>

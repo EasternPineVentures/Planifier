@@ -11,17 +11,17 @@ import {
 
 export default function Nav() {
   return (
-    <nav className="flex items-center gap-4 border-b border-border pb-3">
-      <Link href="/" className="font-mono text-lg tracking-tight">
+    <nav className="flex flex-wrap items-center gap-3 border-b border-border bg-bg/35 pb-3">
+      <Link href="/" className="font-mono text-lg tracking-tight text-ink">
         planifier<span className="text-accent">.</span>
       </Link>
-      <div className="flex flex-1 gap-3 text-sm text-muted">
+      <div className="flex min-w-[180px] flex-1 gap-3 text-sm text-muted">
         <Link href="/" className="hover:text-ink">Home</Link>
         <Link href="/plan/new" className="hover:text-ink">Build</Link>
         <Link href="/plans" className="hover:text-ink">My plans</Link>
       </div>
-      <span className="rounded border border-border px-2 py-1 font-mono text-[10px] uppercase text-muted">
-        NFA · paper-trade first
+      <span className="hidden rounded border border-amber/40 px-2 py-1 font-mono text-[10px] uppercase text-amber sm:inline-flex">
+        NFA / paper first
       </span>
       <SignedOut>
         <div className="flex items-center gap-2">
@@ -31,7 +31,7 @@ export default function Nav() {
             </button>
           </SignInButton>
           <SignUpButton mode="modal">
-            <button className="rounded border border-accent/60 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:border-accent">
+            <button className="rounded border border-accent/70 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:border-accent">
               Sign up
             </button>
           </SignUpButton>

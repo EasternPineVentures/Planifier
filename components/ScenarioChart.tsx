@@ -17,9 +17,9 @@ const PAD = 22;
 const CANDLE_WIDTH = 10;
 
 const TONE_STYLES: Record<ScenarioTone, { stroke: string; label: string }> = {
-  confirm: { stroke: "#d4ff3a", label: "confirmation" },
-  fail: { stroke: "#ff5a5a", label: "failure" },
-  wait: { stroke: "#8a8a91", label: "wait" },
+  confirm: { stroke: "#9cff6a", label: "confirmation" },
+  fail: { stroke: "#ff6670", label: "failure" },
+  wait: { stroke: "#9aa4af", label: "wait" },
 };
 
 export default function ScenarioChart({
@@ -68,7 +68,7 @@ export default function ScenarioChart({
   }
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
+    <section className="surface-panel rounded border border-border bg-panel p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
@@ -245,7 +245,7 @@ function ScenarioSvg({
       aria-label={`${example.title} scenario chart`}
       className="block aspect-[360/190] w-full"
     >
-      <rect width={WIDTH} height={HEIGHT} fill="#111114" />
+      <rect width={WIDTH} height={HEIGHT} fill="#0d1117" />
       {[0, 1, 2].map((line) => (
         <line
           key={line}
@@ -253,7 +253,7 @@ function ScenarioSvg({
           x2={WIDTH - PAD}
           y1={PAD + line * 54}
           y2={PAD + line * 54}
-          stroke="#26262b"
+          stroke="#242b33"
           strokeWidth="1"
         />
       ))}
@@ -262,11 +262,11 @@ function ScenarioSvg({
         x2={WIDTH - PAD}
         y1={levelY}
         y2={levelY}
-        stroke="#7a7a80"
+        stroke="#8d99a6"
         strokeDasharray="5 5"
         strokeWidth="1.5"
       />
-      <text x={PAD} y={levelY - 6} fill="#c9c9d0" fontSize="10">
+      <text x={PAD} y={levelY - 6} fill="#d4dbe2" fontSize="10">
         {example.levelLabel}
       </text>
 
@@ -286,7 +286,7 @@ function ScenarioSvg({
               x2={x}
               y1={highY}
               y2={lowY}
-              stroke={up ? "#d4ff3a" : "#ff5a5a"}
+              stroke={up ? "#9cff6a" : "#ff6670"}
               strokeWidth="1.5"
             />
             <rect
@@ -295,7 +295,7 @@ function ScenarioSvg({
               width={CANDLE_WIDTH}
               height={bodyHeight}
               rx="1"
-              fill={up ? "#d4ff3a" : "#ff5a5a"}
+              fill={up ? "#9cff6a" : "#ff6670"}
               opacity="0.82"
             />
           </g>

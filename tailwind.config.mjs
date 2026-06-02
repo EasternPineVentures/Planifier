@@ -4,13 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: "#0a0a0b",
-        panel: "#121214",
-        border: "#1f1f23",
-        ink: "#e7e7ea",
-        muted: "#8a8a93",
-        accent: "#d4ff3a",
-        danger: "#ff5a5a",
+        bg: "#090a0d",
+        panel: "#12151b",
+        border: "#2a3038",
+        ink: "#f2f5f0",
+        muted: "#9aa4af",
+        accent: "#4dd8ff",
+        lime: "#9cff6a",
+        amber: "#f4c95d",
+        danger: "#ff6670",
       },
       fontFamily: {
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],

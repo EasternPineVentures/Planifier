@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0B0F14",
+  themeColor: "#090a0d",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -52,11 +52,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: "#d4ff3a",
-          colorBackground: "#0a0a0b",
-          colorText: "#e7e7ea",
-          colorInputBackground: "#121214",
-          colorInputText: "#e7e7ea",
+          colorPrimary: "#4dd8ff",
+          colorBackground: "#090a0d",
+          colorText: "#f2f5f0",
+          colorInputBackground: "#12151b",
+          colorInputText: "#f2f5f0",
         },
       }}
     >

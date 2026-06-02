@@ -218,7 +218,7 @@ export default function PlanView({
           href={`/plans/${planId}`}
           className="inline-block rounded border border-border px-3 py-2 text-xs hover:border-accent"
         >
-          Open plan & journal →
+          Open plan & journal -&gt;
         </a>
       )}
     </div>
@@ -243,7 +243,7 @@ function PlanSection({
 
   return (
     <section
-      className={`rounded border ${
+      className={`surface-panel rounded border ${
         accent ? "border-accent/60 bg-accent/10" : "border-border bg-panel"
       }`}
     >
