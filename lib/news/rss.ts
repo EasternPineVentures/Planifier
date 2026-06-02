@@ -13,9 +13,30 @@ export type NewsSnapshot = {
   sourceNotes: string[];
 };
 
+export type HeadlineAssetType = "crypto" | "stocks_etfs" | "macro";
+
+export type HeadlineTapeItem = NewsArticle & {
+  assetType: HeadlineAssetType;
+  assetLabel: string;
+};
+
+export type HeadlineTapeGroup = {
+  assetType: HeadlineAssetType;
+  label: string;
+  items: HeadlineTapeItem[];
+};
+
+export type HeadlineTapeSnapshot = {
+  generatedAt: string;
+  groups: HeadlineTapeGroup[];
+  sourceNotes: string[];
+};
+
 type FeedSource = {
   name: string;
   url: string;
+  assetType?: HeadlineAssetType;
+  label?: string;
 };
 
 const FEEDS: FeedSource[] = [
@@ -27,6 +48,48 @@ const FEEDS: FeedSource[] = [
     name: "Cointelegraph",
     url: "https://cointelegraph.com/rss",
   },
+];
+
+const HEADLINE_FEEDS: Required<FeedSource>[] = [
+  {
+    name: "CoinDesk",
+    url: "https://www.coindesk.com/arc/outboundfeeds/rss",
+    assetType: "crypto",
+    label: "Crypto",
+  },
+  {
+    name: "Cointelegraph",
+    url: "https://cointelegraph.com/rss",
+    assetType: "crypto",
+    label: "Crypto",
+  },
+  {
+    name: "MarketWatch",
+    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+    assetType: "stocks_etfs",
+    label: "Stocks & ETFs",
+  },
+  {
+    name: "MarketWatch MarketPulse",
+    url: "https://feeds.content.dowjones.io/public/rss/mw_marketpulse",
+    assetType: "stocks_etfs",
+    label: "Stocks & ETFs",
+  },
+  {
+    name: "CNBC Markets",
+    url: "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    assetType: "macro",
+    label: "Macro",
+  },
+];
+
+const HEADLINE_GROUP_ORDER: Array<{
+  assetType: HeadlineAssetType;
+  label: string;
+}> = [
+  { assetType: "crypto", label: "Crypto" },
+  { assetType: "stocks_etfs", label: "Stocks & ETFs" },
+  { assetType: "macro", label: "Macro" },
 ];
 
 const ASSET_TERMS: Record<string, string[]> = {
@@ -54,6 +117,8 @@ const MARKET_CONTEXT_TERMS = [
   "rates",
   "regulation",
 ];
+
+const FEED_TIMEOUT_MS = 8000;
 
 export async function getCurrentNewsSnapshot(pair: string): Promise<NewsSnapshot> {
   const queryTerms = buildNewsTerms(pair);
@@ -93,6 +158,56 @@ export async function getCurrentNewsSnapshot(pair: string): Promise<NewsSnapshot
   };
 }
 
+export async function getHeadlineTapeSnapshot(): Promise<HeadlineTapeSnapshot> {
+  const settled = await Promise.allSettled(
+    HEADLINE_FEEDS.map(async (feed) => ({
+      feed,
+      items: parseRssItems(await fetchFeed(feed)),
+    }))
+  );
+
+  const sourceNotes: string[] = [];
+  const articles = settled.flatMap((result) => {
+    if (result.status === "rejected") {
+      sourceNotes.push(`Headline source unavailable: ${result.reason}`);
+      return [];
+    }
+
+    sourceNotes.push(`${result.value.feed.name} RSS checked`);
+    return result.value.items.map((item) => ({
+      ...item,
+      source: result.value.feed.name,
+      matchedTerms: [],
+      assetType: result.value.feed.assetType,
+      assetLabel: result.value.feed.label,
+    }));
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    groups: buildHeadlineTapeGroups(articles),
+    sourceNotes,
+  };
+}
+
+export function buildHeadlineTapeGroups(
+  articles: HeadlineTapeItem[],
+  perGroup = 6
+): HeadlineTapeGroup[] {
+  return HEADLINE_GROUP_ORDER.map((group) => {
+    const items = dedupeArticles(
+      articles.filter((article) => article.assetType === group.assetType)
+    )
+      .sort((a, b) => dateMs(b.publishedAt) - dateMs(a.publishedAt))
+      .slice(0, perGroup);
+
+    return {
+      ...group,
+      items,
+    };
+  });
+}
+
 export function buildNewsTerms(pair: string): string[] {
   const base = pair
     .replace(/[^a-z0-9/]/gi, "")
@@ -110,17 +225,24 @@ export function parseRssItems(xml: string): Array<Omit<NewsArticle, "source" | "
 }
 
 async function fetchFeed(feed: FeedSource): Promise<string> {
-  const res = await fetch(feed.url, {
-    headers: {
-      Accept: "application/rss+xml, application/xml, text/xml",
-      "User-Agent": "Planifier/0.1 educational market context",
-    },
-    next: { revalidate: 300 },
-  });
-  if (!res.ok) {
-    throw new Error(`${feed.name} HTTP ${res.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
+  try {
+    const res = await fetch(feed.url, {
+      headers: {
+        Accept: "application/rss+xml, application/xml, text/xml",
+        "User-Agent": "Planifier/0.1 educational market context",
+      },
+      signal: controller.signal,
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) {
+      throw new Error(`${feed.name} HTTP ${res.status}`);
+    }
+    return await res.text();
+  } finally {
+    clearTimeout(timeout);
   }
-  return res.text();
 }
 
 function parseRssItem(
@@ -170,7 +292,7 @@ function matchedTerms(
   return terms.filter((term) => haystack.includes(term.toLowerCase()));
 }
 
-function dedupeArticles(articles: NewsArticle[]): NewsArticle[] {
+function dedupeArticles<T extends NewsArticle>(articles: T[]): T[] {
   const seen = new Set<string>();
   return articles.filter((article) => {
     const key = article.url.replace(/\?.*$/, "").toLowerCase();

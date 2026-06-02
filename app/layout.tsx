@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import LiveHeadlineBanner from "@/components/LiveHeadlineBanner";
 import { getAppUrl } from "@/lib/appUrl";
 import "./globals.css";
 
@@ -60,7 +61,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       }}
     >
       <html lang="en">
-        <body className="min-h-screen bg-bg text-ink">{children}</body>
+        <body className="min-h-screen bg-bg text-ink">
+          <LiveHeadlineBanner />
+          {children}
+        </body>
       </html>
     </ClerkProvider>
   );
