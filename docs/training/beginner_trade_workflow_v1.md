@@ -18,7 +18,7 @@ The product should not start by asking for expert inputs. It should walk the use
 
 ### 1. Pick Something To Study
 
-The first screen should ask for:
+The first screen should be chart-first. It should ask for:
 
 - Market or symbol: `BTC/USD`, `ETH/USD`, `SPY`, `NVDA`, etc.
 - Timeframe: `15m`, `1H`, `4H`, `1D`.
@@ -30,7 +30,7 @@ Plain-English teaching:
 The asset is what you are studying. The timeframe is how zoomed-in the chart is. The style is how long the idea might take to play out.
 ```
 
-The app should then fetch or prepare context and offer a few educational starting angles.
+The app should then generate a simple practice chart. The user can adjust support, resistance, and invalidation levels and see plain-English feedback before building anything.
 
 ### 2. Learn What To Look At On The Chart
 
@@ -44,7 +44,7 @@ Beginner mode should teach the user to scan the chart in this order:
 6. Risk area: where is the plan fragile?
 7. Journal question: what should the user review afterward?
 
-This should become a visible checklist, not hidden text.
+This should become a visible checklist and a live chart read, not hidden text.
 
 ### 3. Choose One Practice Angle
 
@@ -147,12 +147,13 @@ The goal is not to be right every time. The goal is to learn whether the user fo
 
 Use one primary task per screen:
 
-1. `Start`: choose market, timeframe, style.
-2. `Chart Scan`: trend, levels, current location.
-3. `Choose Angle`: cards for continuation, retest, range, failed move, stand aside.
-4. `Plan Fields`: editable draft fields.
-5. `Plan Result`: collapsible plan sections.
-6. `Journal`: reflection prompts.
+1. `Chart`: generated candles and adjustable levels.
+2. `Start`: choose market, timeframe, style.
+3. `Chart Scan`: trend, levels, current location.
+4. `Choose Angle`: cards for continuation, retest, range, failed move, stand aside.
+5. `Plan Fields`: editable draft fields.
+6. `Plan Result`: collapsible plan sections.
+7. `Journal`: reflection prompts.
 
 Avoid sidebars on mobile. Use sticky bottom actions: `Next`, `Back`, `Build plan`, `Start journal`.
 
@@ -160,23 +161,24 @@ Avoid sidebars on mobile. Use sticky bottom actions: `Next`, `Back`, `Build plan
 
 Use a three-column learning desk:
 
+- Top: chart workspace as the main surface.
 - Left rail: walkthrough steps and learning mode.
-- Center: chart scan, chat, and selected angle.
+- Center: chart feedback, chat, and selected angle.
 - Right rail: plan fields, readiness, and generated plan.
 
-The current `Chat.tsx` already approximates this. The next cleanup should make the beginner walkthrough feel like the primary path rather than an optional side panel.
+The current `Chat.tsx` now mounts the chart workspace at the top of the same page. The next cleanup should split that into dedicated components while keeping the one-page learning flow.
 
 ## What Tools A Beginner Needs
 
 Planifier should teach tool categories, not force one vendor:
 
-- Chart view: candles, timeframe selector, zoom, screenshot.
-- Drawing tools: horizontal levels and simple trendlines.
+- Chart view: candles, timeframe selector, generated practice patterns, screenshot.
+- Drawing tools: horizontal support, resistance, and invalidation levels first; simple trendlines later.
 - Volume: context only, not proof.
 - News/source links: catalyst awareness.
 - Journal: screenshot, plan, result, mistake, lesson.
 
-The first version can rely on uploaded screenshots and written chart context. A built-in chart is useful later, but not required for the beginner loop.
+The first built-in version can use generated practice charts. Later versions can replace or enrich those candles with live OHLC data while keeping the same learning controls.
 
 ## Product Priorities
 
@@ -184,6 +186,7 @@ The first version can rely on uploaded screenshots and written chart context. A 
 
 - Make `/` offer a real `Learning Workspace` entry instead of a disabled card.
 - Make beginner mode the default path.
+- Make the chart workspace the main surface on `/plan/new`.
 - Rename confusing expert fields into plain English.
 - Keep fixed risk locked.
 - Make the chart-scan checklist visible before the plan fields.

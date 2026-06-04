@@ -9,6 +9,7 @@ import {
 } from "@/lib/validation";
 import PlanView from "@/components/PlanView";
 import ScenarioChart from "@/components/ScenarioChart";
+import ChartWorkspace from "@/components/ChartWorkspace";
 import type { Plan } from "@/lib/plan/schema";
 import {
   appendChartContextPrompt,
@@ -437,6 +438,35 @@ export default function Chat() {
     }, 0);
   }
 
+  function applyChartWorkspaceNote(note: string) {
+    updateInputs({
+      ticker: normalizeBeginnerExplorePair(explorePair),
+      timeframe: exploreTimeframe,
+      holdingPeriod:
+        exploreStyle === "Scalp" ||
+        exploreStyle === "Day" ||
+        exploreStyle === "Swing" ||
+        exploreStyle === "Position"
+          ? exploreStyle
+          : inputs.holdingPeriod,
+      chartNote: note,
+    });
+    setQuestion(
+      "Use the chart levels to build a paper plan. What confirms the idea, what invalidates it, and when should I stand aside?"
+    );
+    setMessages((current) => [
+      ...current,
+      {
+        role: "assistant",
+        content:
+          "I loaded the chart levels into the plan fields. Next check the holding period, then build only if the confirmation and invalidation make sense.",
+      },
+    ]);
+    window.setTimeout(() => {
+      buildRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
   async function generateHistoricalScenarioMap() {
     const pair = explorePair.trim().toUpperCase();
     if (!pair || historicalBusy) return;
@@ -551,6 +581,15 @@ export default function Chat() {
 
   return (
     <div className="grid flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.55fr)]">
+      <div className="xl:col-span-2">
+        <ChartWorkspace
+          pair={explorePair}
+          timeframe={exploreTimeframe}
+          style={exploreStyle}
+          onUseChartContext={applyChartWorkspaceNote}
+        />
+      </div>
+
       <section className="surface-panel flex flex-col rounded border border-border bg-panel xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]">
         <div className="border-b border-border p-4">
           <h2 className="text-sm font-medium">Plain-English plan builder</h2>

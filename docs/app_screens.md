@@ -206,13 +206,15 @@ Reference workflow: [docs/training/beginner_trade_workflow_v1.md](training/begin
 
 **Flow:**
 1. Pick market, timeframe, and style.
-2. Scan the chart: trend, key levels, current location, confirmation, invalidation.
-3. Choose one practice angle: continuation, breakout retest, range edge, failed move, or stand aside.
-4. Review draft plan fields.
-5. Build structured plan.
-6. Journal outcome.
+2. Use the chart workspace: generated candles, adjustable support, resistance, and invalidation levels, live feedback.
+3. Scan the chart: trend, key levels, current location, confirmation, invalidation.
+4. Choose one practice angle: continuation, breakout retest, range edge, failed move, or stand aside.
+5. Review draft plan fields.
+6. Build structured plan.
+7. Journal outcome.
 
 **Required components:**
+- `ChartWorkspace` - generated candle chart, adjustable levels, and live plain-English feedback.
 - `ChartScanChecklist` - visible checklist for what to look at on a chart.
 - `StartingAngleExplorer` - cards for possible educational angles.
 - `BeginnerWalkthroughPanel` - current step, why it matters, and next action.
