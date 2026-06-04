@@ -13,16 +13,16 @@ import {
   type WorkspaceLevels,
 } from "@/lib/plan/chartWorkspace";
 
-const WIDTH = 760;
-const HEIGHT = 320;
+const WIDTH = 920;
+const HEIGHT = 420;
 const PAD_X = 34;
-const PAD_Y = 26;
-const CANDLE_WIDTH = 10;
+const PAD_Y = 34;
+const CANDLE_WIDTH = 12;
 
 const LINE_STYLES: Record<ChartLineId, { label: string; color: string }> = {
-  support: { label: "Support", color: "#9cff6a" },
-  resistance: { label: "Resistance", color: "#ffcc66" },
-  invalidation: { label: "Invalidation", color: "#ff6670" },
+  support: { label: "Support", color: "#2f7d32" },
+  resistance: { label: "Resistance", color: "#c77b2a" },
+  invalidation: { label: "Invalidation", color: "#b33a46" },
 };
 
 export default function ChartWorkspace({
@@ -78,18 +78,18 @@ export default function ChartWorkspace({
   }
 
   return (
-    <section className="surface-panel rounded border border-accent/40 bg-panel p-4">
+    <section className="surface-panel rounded border border-border bg-panel p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
-            Chart workspace
+            Step 2 / chart workspace
           </div>
-          <h2 className="mt-1 text-lg font-medium text-ink">
-            Start with the chart, then build the plan.
+          <h2 className="mt-1 text-xl font-semibold text-ink">
+            Put the levels where your idea becomes clear.
           </h2>
           <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted">
-            Use the generated practice chart to place levels, read the feedback,
-            and load the chart context into the builder.
+            Drag the support, resistance, and wrong-if lines. The readout updates
+            live, then one button loads the chart into your plan.
           </p>
         </div>
         <span className="shrink-0 rounded border border-border px-2 py-1 font-mono text-[10px] uppercase text-muted">
@@ -97,7 +97,13 @@ export default function ChartWorkspace({
         </span>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-4 rounded border border-accent/25 bg-accent/5 p-3 text-sm leading-relaxed text-ink">
+        Do this now: adjust one level, read the feedback, then click
+        <span className="font-medium"> Load chart into plan</span>. You do not
+        need a perfect prediction. You need a clear practice rule.
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div>
           <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
             {CHART_PATTERNS.map((item) => (
@@ -127,12 +133,12 @@ export default function ChartWorkspace({
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
               role="img"
               aria-label={`${pair || "Practice"} ${timeframe || "chart"} workspace`}
-              className="block aspect-[760/320] w-full touch-none"
+              className="block aspect-[920/420] w-full touch-none"
               onPointerMove={updateDraggedLevel}
               onPointerUp={() => setDragging(null)}
               onPointerLeave={() => setDragging(null)}
             >
-              <rect width={WIDTH} height={HEIGHT} fill="#090a0d" />
+              <rect width={WIDTH} height={HEIGHT} fill="#fbfdf8" />
               <ChartGrid />
               <CandleLayer candles={candles} min={priceRange.min} max={priceRange.max} />
               {(Object.keys(LINE_STYLES) as ChartLineId[]).map((line) => (
@@ -194,7 +200,7 @@ export default function ChartWorkspace({
             onClick={() => onUseChartContext(feedback.chartNote)}
             className="mt-3 w-full rounded bg-accent px-3 py-3 text-sm font-medium text-bg"
           >
-            Use chart as context
+            Load chart into plan
           </button>
         </aside>
       </div>
@@ -214,7 +220,7 @@ function ChartGrid() {
             x2={WIDTH - PAD_X}
             y1={y}
             y2={y}
-            stroke="#202630"
+            stroke="#dfe7e1"
             strokeWidth="1"
           />
         );
@@ -228,7 +234,7 @@ function ChartGrid() {
             x2={x}
             y1={PAD_Y}
             y2={HEIGHT - PAD_Y}
-            stroke="#141a22"
+            stroke="#ebf0ec"
             strokeWidth="1"
           />
         );
@@ -256,7 +262,7 @@ function CandleLayer({
         const highY = yFor(candle.high, min, max);
         const lowY = yFor(candle.low, min, max);
         const up = candle.close >= candle.open;
-        const color = up ? "#9cff6a" : "#ff6670";
+        const color = up ? "#2f7d32" : "#b33a46";
         const bodyY = Math.min(openY, closeY);
         const bodyHeight = Math.max(Math.abs(closeY - openY), 3);
         return (
@@ -326,7 +332,7 @@ function LevelLine({
         width="126"
         height="26"
         rx="5"
-        fill="#090a0d"
+        fill="#ffffff"
         stroke={style.color}
         opacity="0.95"
       />

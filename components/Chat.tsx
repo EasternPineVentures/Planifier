@@ -580,262 +580,118 @@ export default function Chat() {
   }
 
   return (
-    <div className="grid flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.55fr)]">
-      <div className="xl:col-span-2">
-        <ChartWorkspace
-          pair={explorePair}
-          timeframe={exploreTimeframe}
-          style={exploreStyle}
-          onUseChartContext={applyChartWorkspaceNote}
-        />
-      </div>
-
-      <section className="surface-panel flex flex-col rounded border border-border bg-panel xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]">
-        <div className="border-b border-border p-4">
-          <h2 className="text-sm font-medium">Plain-English plan builder</h2>
-          <p className="mt-1 text-xs leading-relaxed text-muted">
-            Describe what you see like you would to a trading buddy. Planifier will
-            translate it into structured fields before generating anything.
-          </p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
-              Learning level
-            </span>
-            <div className="grid grid-cols-2 gap-1 rounded border border-border bg-bg p-1 sm:w-[260px]">
-              {LEARNING_MODES.map((mode) => (
-                <button
-                  key={mode.value}
-                  type="button"
-                  aria-pressed={learningMode === mode.value}
-                  onClick={() => setLearningMode(mode.value)}
-                  className={`rounded px-2 py-2 text-xs ${
-                    learningMode === mode.value
-                      ? "bg-accent text-bg"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
+    <div className="space-y-5">
+      <section
+        ref={startHereRef}
+        className="surface-panel rounded border border-border bg-panel p-4"
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
+              Step 1 / start here
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-ink">
+              Choose one chart. Do not chase everything.
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">
+              The first finished plan only needs a market, timeframe, holding
+              style, chart levels, and a clear wrong-if condition. Everything
+              else is optional practice.
+            </p>
           </div>
-          {learningMode === "beginner" ? (
-            <StartHerePanel
-              pair={explorePair}
-              timeframe={exploreTimeframe}
-              style={exploreStyle}
-              ready={ready}
-              hasPlan={!!structuredPlan}
-              exploreBusy={exploreBusy}
-              planBusy={planBusy}
-              missingLabels={missingLabels}
-              onPairPick={setExplorePair}
-              onTimeframePick={setExploreTimeframe}
-              onStylePick={setExploreStyle}
-              onFindAngles={exploreStartingAngles}
-              onBuild={buildStructuredPlan}
-              onReviewFields={() =>
-                buildRef.current?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                })
-              }
-            />
-          ) : (
-            <BuilderStatus
-              ready={ready}
-              hasPlan={!!structuredPlan}
-              planBusy={planBusy}
-              missingLabels={missingLabels}
-              onBuild={buildStructuredPlan}
-              onReview={() =>
-                buildRef.current?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                })
-              }
-            />
-          )}
-        </div>
-
-        <div className="max-h-[420px] min-h-[220px] space-y-3 overflow-y-auto p-4 xl:max-h-[38vh]">
-          {messages.map((m, i) => (
-            <Message key={i} role={m.role} content={m.content} />
-          ))}
-          {busy && <p className="text-xs text-muted">Reading the setup...</p>}
-          {planError && (
-            <div className="rounded border border-danger/50 bg-danger/10 p-3 text-xs leading-relaxed text-danger">
-              {planError}
-            </div>
-          )}
-          {structuredPlan && (
-            <div ref={planResultRef} className="rounded border border-accent/30 bg-bg p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="font-mono text-[10px] uppercase text-muted">
-                  structured plan
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setStructuredPlan(null)}
-                  className="text-[10px] text-muted underline"
-                >
-                  clear
-                </button>
-              </div>
-              <PlanView plan={structuredPlan.plan} planId={structuredPlan.id} />
-            </div>
-          )}
-        </div>
-
-        <div className="border-t border-border p-3">
-          <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {STARTER_PROMPTS.map((starter) => (
+          <div className="grid grid-cols-2 gap-1 rounded border border-border bg-bg p-1 lg:w-[280px]">
+            {LEARNING_MODES.map((mode) => (
               <button
-                key={starter.label}
+                key={mode.value}
                 type="button"
-                onClick={() => setDraft(starter.text)}
-                className="rounded border border-border px-3 py-2 text-left text-xs text-ink hover:border-muted"
+                aria-pressed={learningMode === mode.value}
+                onClick={() => setLearningMode(mode.value)}
+                className={`rounded px-2 py-2 text-xs ${
+                  learningMode === mode.value
+                    ? "bg-accent text-bg"
+                    : "text-muted hover:text-ink"
+                }`}
               >
-                {starter.label}
+                {mode.label}
               </button>
             ))}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              rows={3}
-              placeholder="Example: BTC 4H swing, risk 1%. Pulling back into prior support after higher lows. I am unsure if this is continuation or weakness."
-              className="min-h-[72px] flex-1 resize-none rounded border border-border bg-bg p-3 text-sm leading-relaxed"
-            />
-            <button
-              type="button"
-              onClick={() => send()}
-              disabled={busy || !draft.trim()}
-              className="rounded bg-accent px-4 py-3 text-sm font-medium text-bg disabled:opacity-40 sm:w-24"
-            >
-              Send
-            </button>
-          </div>
-          <p className="mt-2 text-[10px] text-muted">
-            Enter = send. Shift+Enter = newline.
-          </p>
         </div>
-      </section>
 
-      <aside className="space-y-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
-        {learningMode === "beginner" && (
-          <BeginnerWalkthrough
-            steps={beginnerWalkthroughSteps}
+        {learningMode === "beginner" ? (
+          <StartHerePanel
             pair={explorePair}
             timeframe={exploreTimeframe}
             style={exploreStyle}
-            selectedAngleLabel={selectedAngleLabel}
             ready={ready}
             hasPlan={!!structuredPlan}
-            planId={structuredPlan?.id ?? ""}
-            planBusy={planBusy}
             exploreBusy={exploreBusy}
-            onStart={() =>
-              startHereRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              })
-            }
+            planBusy={planBusy}
+            missingLabels={missingLabels}
+            onPairPick={setExplorePair}
+            onTimeframePick={setExploreTimeframe}
+            onStylePick={setExploreStyle}
             onFindAngles={exploreStartingAngles}
+            onBuild={buildStructuredPlan}
             onReviewFields={() =>
               buildRef.current?.scrollIntoView({
                 behavior: "smooth",
                 block: "start",
               })
             }
+          />
+        ) : (
+          <BuilderStatus
+            ready={ready}
+            hasPlan={!!structuredPlan}
+            planBusy={planBusy}
+            missingLabels={missingLabels}
             onBuild={buildStructuredPlan}
-            onReviewPlan={() =>
-              planResultRef.current?.scrollIntoView({
+            onReview={() =>
+              buildRef.current?.scrollIntoView({
                 behavior: "smooth",
                 block: "start",
               })
             }
           />
         )}
+      </section>
 
-        <section ref={startHereRef} className="surface-panel rounded border border-border bg-panel p-4">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            Step 1: find a starting angle
-          </h2>
-          <p className="mt-2 text-xs leading-relaxed text-muted">
-            Pick a market and timeframe. Planifier will suggest educational
-            practice angles, then you choose one and turn it into a checklist.
-          </p>
-
-          <div className="mt-3">
-            <label className="mb-1 block text-xs text-muted">Pair</label>
-            <input
-              value={explorePair}
-              onChange={(e) => setExplorePair(e.target.value.toUpperCase())}
-              placeholder="BTC/USD"
-              className="w-full rounded border border-border bg-bg p-2 text-sm"
-            />
-          </div>
-
-          <div className="mt-3">
-            <span className="mb-1 block text-xs text-muted">Timeframe</span>
-            <div className="grid grid-cols-4 gap-1">
-              {EXPLORE_TIMEFRAMES.map((timeframe) => (
-                <button
-                  key={timeframe}
-                  type="button"
-                  onClick={() => setExploreTimeframe(timeframe)}
-                  className={`rounded border px-2 py-2 text-xs ${
-                    exploreTimeframe === timeframe
-                      ? "border-accent bg-accent/10 text-accent"
-                      : "border-border text-ink hover:border-muted"
-                  }`}
-                >
-                  {timeframe}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-3">
-            <span className="mb-1 block text-xs text-muted">Style</span>
-            <div className="grid grid-cols-2 gap-1">
-              {EXPLORE_STYLES.map((style) => (
-                <button
-                  key={style}
-                  type="button"
-                  onClick={() => setExploreStyle(style)}
-                  className={`rounded border px-2 py-2 text-xs ${
-                    exploreStyle === style
-                      ? "border-accent bg-accent/10 text-accent"
-                      : "border-border text-ink hover:border-muted"
-                  }`}
-                >
-                  {style}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={exploreStartingAngles}
-            disabled={exploreBusy || !explorePair.trim()}
-            className="mt-3 w-full rounded bg-accent px-3 py-3 text-sm font-medium text-bg disabled:opacity-40"
-          >
-            {exploreBusy ? "Finding angles..." : "Find beginner starting angles"}
-          </button>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <main className="space-y-4">
+          <ChartWorkspace
+            pair={explorePair}
+            timeframe={exploreTimeframe}
+            style={exploreStyle}
+            onUseChartContext={applyChartWorkspaceNote}
+          />
 
           {exploreResult && (
-            <div className="mt-4 space-y-3">
-              <div className="rounded border border-border bg-bg p-3 text-xs leading-relaxed text-muted">
+            <section className="surface-panel rounded border border-border bg-panel p-4">
+              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
+                    Step 3 / choose one angle
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold text-ink">
+                    Pick the idea you can actually explain.
+                  </h2>
+                  <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">
+                    These are practice angles, not instructions. Choose the one
+                    that matches what you can see on the chart, then edit it.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={exploreStartingAngles}
+                  disabled={exploreBusy || !explorePair.trim()}
+                  className="rounded border border-accent/50 px-3 py-2 text-xs font-medium text-accent disabled:opacity-40"
+                >
+                  {exploreBusy ? "Refreshing..." : "Refresh angles"}
+                </button>
+              </div>
+
+              <div className="mt-4 rounded border border-border bg-bg p-3 text-sm leading-relaxed text-muted">
                 <p>{exploreResult.overview}</p>
                 {exploreResult.foxClaw && (
                   <p className="mt-2">
@@ -848,47 +704,53 @@ export default function Chat() {
                 )}
               </div>
 
-              {exploreResult.candidates.map((candidate) => (
-                <article
-                  key={candidate.label}
-                  className="rounded border border-border bg-bg p-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-medium">{candidate.label}</h3>
-                    <span className="rounded border border-border px-2 py-1 text-[10px] uppercase text-muted">
-                      {candidate.bias} / {candidate.confidence}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    {candidate.thesis}
-                  </p>
-                  <div className="mt-2 space-y-1 text-xs leading-relaxed text-muted">
-                    <p>
-                      <span className="text-ink">Wait for:</span>{" "}
-                      {candidate.whatToWaitFor.slice(0, 2).join("; ")}
-                    </p>
-                    <p>
-                      <span className="text-ink">Invalid if:</span>{" "}
-                      {candidate.invalidation.slice(0, 2).join("; ")}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => applyExploreCandidate(candidate)}
-                    className="mt-3 w-full rounded border border-accent/50 px-3 py-2 text-left text-xs text-accent"
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                {exploreResult.candidates.map((candidate) => (
+                  <article
+                    key={candidate.label}
+                    className={`rounded border bg-bg p-3 ${
+                      selectedAngleLabel === candidate.label
+                        ? "border-accent/70"
+                        : "border-border"
+                    }`}
                   >
-                    Use this as the starting plan
-                  </button>
-                </article>
-              ))}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold">{candidate.label}</h3>
+                      <span className="rounded border border-border px-2 py-1 text-[10px] uppercase text-muted">
+                        {candidate.bias} / {candidate.confidence}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-muted">
+                      {candidate.thesis}
+                    </p>
+                    <div className="mt-2 space-y-1 text-xs leading-relaxed text-muted">
+                      <p>
+                        <span className="text-ink">Wait for:</span>{" "}
+                        {candidate.whatToWaitFor.slice(0, 2).join("; ")}
+                      </p>
+                      <p>
+                        <span className="text-ink">Wrong if:</span>{" "}
+                        {candidate.invalidation.slice(0, 2).join("; ")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => applyExploreCandidate(candidate)}
+                      className="mt-3 w-full rounded bg-accent px-3 py-2 text-left text-xs font-medium text-bg"
+                    >
+                      Load this angle
+                    </button>
+                  </article>
+                ))}
+              </div>
 
               {exploreResult.newsSnapshot && (
-                <details className="rounded border border-border bg-bg p-3">
+                <details className="mt-4 rounded border border-border bg-bg p-3">
                   <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-wider text-muted">
                     Current context / {formatTimestamp(exploreResult.newsSnapshot.generatedAt)}
                   </summary>
                   {exploreResult.newsSnapshot.articles.length > 0 ? (
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 grid gap-2 md:grid-cols-2">
                       {exploreResult.newsSnapshot.articles.slice(0, 2).map((article) => (
                         <a
                           key={article.url}
@@ -914,196 +776,332 @@ export default function Chat() {
                   )}
                 </details>
               )}
-            </div>
+            </section>
           )}
-        </section>
 
-        <ScenarioChart
-          historicalScenario={historicalScenario}
-          historicalBusy={historicalBusy}
-          historicalError={historicalError}
-          onRequestHistorical={generateHistoricalScenarioMap}
-          onUseScenario={applyScenarioNote}
-        />
-
-        <section ref={buildRef} className="surface-panel rounded border border-border bg-panel p-4">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-              Step 3: build the plan
-            </h2>
-            <span
-              className={`rounded border px-2 py-1 text-[10px] ${
-                ready
-                  ? "border-accent/40 text-accent"
-                  : "border-border text-muted"
-              }`}
+          {structuredPlan && (
+            <section
+              ref={planResultRef}
+              className="surface-panel rounded border border-accent/40 bg-panel p-4"
             >
-              {ready ? "ready" : `${missing.length} missing`}
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            <InputRow
-              label="Asset"
-              value={inputs.ticker}
-              missing={missing.includes("ticker")}
-              placeholder="BTC/USD"
-            />
-            <InputRow
-              label="Timeframe"
-              value={inputs.timeframe}
-              missing={missing.includes("timeframe")}
-              placeholder="4H"
-            />
-            <HoldingPeriodPicker value={inputs.holdingPeriod} onPick={updateInputs} />
-            <FixedRiskRow missing={missing.includes("riskPercent")} />
-          </div>
-
-          {learningMode === "beginner" && (
-            <div className="mt-3 rounded border border-border bg-bg p-3">
-              <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted">
-                Still learning
-              </h3>
-              <div className="mt-2 space-y-2">
-                {BEGINNER_FIELD_HELP.map((item) => (
-                  <p key={item.term} className="text-xs leading-relaxed text-muted">
-                    <span className="text-ink">{item.term}:</span> {item.help}
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
+                    Finished draft
                   </p>
-                ))}
-              </div>
-              <div className="mt-3 rounded border border-border/70 p-2">
-                <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
-                  chart note pattern
+                  <h2 className="mt-1 text-lg font-semibold text-ink">
+                    Read the plan before practicing it.
+                  </h2>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setStructuredPlan(null)}
+                  className="rounded border border-border px-3 py-2 text-xs text-muted hover:text-ink"
+                >
+                  Clear draft
+                </button>
+              </div>
+              <PlanView plan={structuredPlan.plan} planId={structuredPlan.id} />
+            </section>
+          )}
+
+          <section className="surface-panel rounded border border-border bg-panel p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                  Ask Planifier
+                </p>
+                <h2 className="mt-1 text-base font-semibold text-ink">
+                  Use chat only when the chart path gets stuck.
+                </h2>
                 <p className="mt-1 text-xs leading-relaxed text-muted">
-                  {BEGINNER_CONTEXT_EXAMPLE}
+                  Plain English is enough. The goal is to fill the plan fields,
+                  not sound like a professional trader.
                 </p>
               </div>
             </div>
-          )}
 
-          {mismatch && (
-            <div className="mt-3 rounded border border-danger/50 bg-danger/10 p-3 text-xs leading-relaxed text-danger">
-              {mismatch}
+            <div className="mt-4 space-y-3">
+              {messages.map((m, i) => (
+                <Message key={i} role={m.role} content={m.content} />
+              ))}
+              {busy && <p className="text-xs text-muted">Reading the setup...</p>}
+              {planError && (
+                <div className="rounded border border-danger/50 bg-danger/10 p-3 text-xs leading-relaxed text-danger">
+                  {planError}
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="mt-4">
-            <label className="mb-1 block text-xs text-muted">Chart screenshot</label>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              aria-label="Upload chart screenshot"
-              onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-              className="block w-full text-xs file:mr-2 file:rounded file:border-0 file:bg-border file:px-2 file:py-1 file:text-ink hover:file:bg-muted"
-            />
-            {imageDataUrl && (
-              <div className="mt-2 flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element -- user-supplied data URL */}
-                <img
-                  src={imageDataUrl}
-                  alt="chart"
-                  className="h-16 w-auto rounded border border-border"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImageDataUrl(null);
-                    if (fileRef.current) fileRef.current.value = "";
-                  }}
-                  className="text-[10px] text-muted underline"
-                >
-                  remove
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4">
-            <label className="mb-1 block text-xs text-muted">Chart context</label>
-            {learningMode === "beginner" && (
-              <div className="mb-2 grid grid-cols-2 gap-1">
-                {CHART_CONTEXT_PROMPTS.map((item) => (
+            <div className="mt-4 border-t border-border pt-3">
+              <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {STARTER_PROMPTS.map((starter) => (
                   <button
-                    key={item.label}
+                    key={starter.label}
                     type="button"
-                    onClick={() =>
-                      updateInputs({
-                        chartNote: appendChartContextPrompt(
-                          inputs.chartNote,
-                          item.prompt
-                        ),
-                      })
-                    }
-                    className="rounded border border-border px-2 py-2 text-left text-[11px] text-muted hover:border-muted hover:text-ink"
+                    onClick={() => setDraft(starter.text)}
+                    className="rounded border border-border bg-bg px-3 py-2 text-left text-xs text-ink hover:border-muted"
                   >
-                    Add {item.label.toLowerCase()}
+                    {starter.label}
                   </button>
                 ))}
               </div>
-            )}
-            <textarea
-              value={inputs.chartNote ?? ""}
-              onChange={(e) => updateInputs({ chartNote: e.target.value })}
-              rows={6}
-              placeholder="Answer in pieces: trend, key level, what price is doing now, and what would prove the idea wrong."
-              className={`w-full rounded border bg-bg p-2 text-xs leading-relaxed ${
-                missing.includes("chart") ? "border-danger" : "border-border"
-              }`}
-            />
-            <p className="mt-1 text-[10px] text-muted">
-              {imageDataUrl
-                ? "Image uploaded. Notes are still useful."
-                : `${chartChars}/${MIN_CHART_NOTE_CHARS} useful characters minimum. Name a trend, level, current behavior, and wrong-if condition.`}
-            </p>
-          </div>
-
-          <div className="mt-4">
-            <label className="mb-1 block text-xs text-muted">Focus question</label>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              rows={2}
-              placeholder="Optional: what should the plan pay attention to?"
-              className="w-full rounded border border-border bg-bg p-2 text-xs leading-relaxed"
-            />
-          </div>
-
-          {missing.length > 0 && (
-            <div className="mt-3 rounded border border-border p-3 text-xs leading-relaxed text-muted">
-              Next: add {missingLabels.join(", ")}.
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                  rows={3}
+                  placeholder="Example: BTC 4H swing, risk 1%. Pulling back into prior support after higher lows. I am unsure if this is continuation or weakness."
+                  className="min-h-[72px] flex-1 resize-none rounded border border-border bg-bg p-3 text-sm leading-relaxed"
+                />
+                <button
+                  type="button"
+                  onClick={() => send()}
+                  disabled={busy || !draft.trim()}
+                  className="rounded bg-accent px-4 py-3 text-sm font-medium text-bg disabled:opacity-40 sm:w-24"
+                >
+                  Send
+                </button>
+              </div>
+              <p className="mt-2 text-[10px] text-muted">
+                Enter = send. Shift+Enter = newline.
+              </p>
             </div>
+          </section>
+        </main>
+
+        <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+          {learningMode === "beginner" && (
+            <BeginnerWalkthrough
+              steps={beginnerWalkthroughSteps}
+              pair={explorePair}
+              timeframe={exploreTimeframe}
+              style={exploreStyle}
+              selectedAngleLabel={selectedAngleLabel}
+              ready={ready}
+              hasPlan={!!structuredPlan}
+              planId={structuredPlan?.id ?? ""}
+              planBusy={planBusy}
+              exploreBusy={exploreBusy}
+              onStart={() =>
+                startHereRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
+              onFindAngles={exploreStartingAngles}
+              onReviewFields={() =>
+                buildRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
+              onBuild={buildStructuredPlan}
+              onReviewPlan={() =>
+                planResultRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
+            />
           )}
 
-          <button
-            type="button"
-            onClick={buildStructuredPlan}
-            disabled={!ready || planBusy}
-            className="mt-3 w-full rounded bg-accent px-3 py-3 text-sm font-medium text-bg disabled:opacity-40"
+          <section
+            ref={buildRef}
+            className="surface-panel rounded border border-border bg-panel p-4"
           >
-            {planBusy ? "Building plan..." : "Build structured plan"}
-          </button>
-        </section>
-
-        <section className="surface-panel rounded border border-border bg-panel p-4">
-          <details>
-            <summary className="cursor-pointer list-none font-mono text-xs uppercase tracking-wider text-muted">
-              Chart examples
-            </summary>
-            <div className="mt-3 space-y-2">
-              {CHART_EXAMPLES.map((example) => (
-                <p
-                  key={example}
-                  className="rounded border border-border bg-bg p-2 text-xs leading-relaxed text-muted"
-                >
-                  {example}
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
+                  Step 4 / plan checklist
                 </p>
-              ))}
+                <h2 className="mt-1 text-base font-semibold text-ink">
+                  Fill only what the plan needs.
+                </h2>
+              </div>
+              <span
+                className={`rounded border px-2 py-1 text-[10px] ${
+                  ready
+                    ? "border-accent/40 text-accent"
+                    : "border-border text-muted"
+                }`}
+              >
+                {ready ? "ready" : `${missing.length} missing`}
+              </span>
             </div>
-          </details>
-        </section>
-      </aside>
+
+            <div className="space-y-2">
+              <InputRow
+                label="Asset"
+                value={inputs.ticker}
+                missing={missing.includes("ticker")}
+                placeholder="BTC/USD"
+              />
+              <InputRow
+                label="Timeframe"
+                value={inputs.timeframe}
+                missing={missing.includes("timeframe")}
+                placeholder="4H"
+              />
+              <HoldingPeriodPicker value={inputs.holdingPeriod} onPick={updateInputs} />
+              <FixedRiskRow missing={missing.includes("riskPercent")} />
+            </div>
+
+            {mismatch && (
+              <div className="mt-3 rounded border border-danger/50 bg-danger/10 p-3 text-xs leading-relaxed text-danger">
+                {mismatch}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <label className="mb-1 block text-xs text-muted">Chart screenshot</label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                aria-label="Upload chart screenshot"
+                onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                className="block w-full text-xs file:mr-2 file:rounded file:border-0 file:bg-border file:px-2 file:py-1 file:text-ink hover:file:bg-muted"
+              />
+              {imageDataUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- user-supplied data URL */}
+                  <img
+                    src={imageDataUrl}
+                    alt="chart"
+                    className="h-16 w-auto rounded border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageDataUrl(null);
+                      if (fileRef.current) fileRef.current.value = "";
+                    }}
+                    className="text-[10px] text-muted underline"
+                  >
+                    remove
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-xs text-muted">Chart context</label>
+              {learningMode === "beginner" && (
+                <div className="mb-2 grid grid-cols-2 gap-1">
+                  {CHART_CONTEXT_PROMPTS.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() =>
+                        updateInputs({
+                          chartNote: appendChartContextPrompt(
+                            inputs.chartNote,
+                            item.prompt
+                          ),
+                        })
+                      }
+                      className="rounded border border-border px-2 py-2 text-left text-[11px] text-muted hover:border-muted hover:text-ink"
+                    >
+                      Add {item.label.toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <textarea
+                value={inputs.chartNote ?? ""}
+                onChange={(e) => updateInputs({ chartNote: e.target.value })}
+                rows={6}
+                placeholder="Answer in pieces: trend, key level, what price is doing now, and what would prove the idea wrong."
+                className={`w-full rounded border bg-bg p-2 text-xs leading-relaxed ${
+                  missing.includes("chart") ? "border-danger" : "border-border"
+                }`}
+              />
+              <p className="mt-1 text-[10px] text-muted">
+                {imageDataUrl
+                  ? "Image uploaded. Notes are still useful."
+                  : `${chartChars}/${MIN_CHART_NOTE_CHARS} useful characters minimum. Name a trend, level, current behavior, and wrong-if condition.`}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-xs text-muted">Focus question</label>
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                rows={2}
+                placeholder="Optional: what should the plan pay attention to?"
+                className="w-full rounded border border-border bg-bg p-2 text-xs leading-relaxed"
+              />
+            </div>
+
+            {learningMode === "beginner" && (
+              <div className="mt-3 rounded border border-border bg-bg p-3">
+                <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                  Still learning
+                </h3>
+                <div className="mt-2 space-y-2">
+                  {BEGINNER_FIELD_HELP.map((item) => (
+                    <p key={item.term} className="text-xs leading-relaxed text-muted">
+                      <span className="text-ink">{item.term}:</span> {item.help}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {missing.length > 0 && (
+              <div className="mt-3 rounded border border-border p-3 text-xs leading-relaxed text-muted">
+                Next: add {missingLabels.join(", ")}.
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={buildStructuredPlan}
+              disabled={!ready || planBusy}
+              className="mt-3 w-full rounded bg-accent px-3 py-3 text-sm font-medium text-bg disabled:opacity-40"
+            >
+              {planBusy ? "Building plan..." : "Build structured plan"}
+            </button>
+          </section>
+
+          <ScenarioChart
+            historicalScenario={historicalScenario}
+            historicalBusy={historicalBusy}
+            historicalError={historicalError}
+            onRequestHistorical={generateHistoricalScenarioMap}
+            onUseScenario={applyScenarioNote}
+          />
+
+          <section className="surface-panel rounded border border-border bg-panel p-4">
+            <details>
+              <summary className="cursor-pointer list-none font-mono text-xs uppercase tracking-wider text-muted">
+                Chart examples
+              </summary>
+              <div className="mt-3 space-y-2">
+                <p className="rounded border border-border bg-bg p-2 text-xs leading-relaxed text-muted">
+                  {BEGINNER_CONTEXT_EXAMPLE}
+                </p>
+                {CHART_EXAMPLES.map((example) => (
+                  <p
+                    key={example}
+                    className="rounded border border-border bg-bg p-2 text-xs leading-relaxed text-muted"
+                  >
+                    {example}
+                  </p>
+                ))}
+              </div>
+            </details>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

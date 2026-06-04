@@ -144,7 +144,7 @@ The guided builder lives at `/plan/new` (`<Chat />`); `/` is a landing/command s
 - **Chat (`/api/chat`)** — streaming, free-form Q&A still bound by the runtime system prompt. Use for follow-up questions like "what does invalidation mean here?".
 - **Structured Plan (`/api/plan`)** — `generateObject` with the zod `PlanSchema`. Always returns the seven sections plus a disclaimer, timeframe-mismatch warning, and optional cognitive-bias notes. Persisted to Postgres so it shows up under **My plans** and can be journaled.
 - **Intake (`/api/plan/intake`)** — helper step that turns raw, messy user input into the structured plan inputs the builder needs.
-- **Chart workspace** — the top of `/plan/new` renders a simple generated candle chart with adjustable support, resistance, and invalidation levels. It gives live plain-English feedback and can load the chart context into the builder.
+- **Chart-first worksheet** — `/plan/new` opens with one command strip, a generated candle chart, adjustable support/resistance/invalidation levels, and live plain-English feedback. The user can load the chart context into the builder before touching the chat.
 - **Explore (`/api/plan/explore`)** — context-gathering step that pulls public Kraken market data and news RSS, plus **context-only** FoxClaw advisory data, to inform educational starting angles. It never produces signals or trade authority. See [docs/context/foxclaw_planifier_bridge.md](docs/context/foxclaw_planifier_bridge.md).
 - **Beginner workflow** — the start-to-finish learning path is documented in [docs/training/beginner_trade_workflow_v1.md](docs/training/beginner_trade_workflow_v1.md). It teaches market selection, chart scanning, setup angles, plan fields, paper practice, and journaling.
 

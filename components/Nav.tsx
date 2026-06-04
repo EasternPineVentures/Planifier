@@ -11,7 +11,7 @@ import {
 
 export default function Nav() {
   return (
-    <nav className="flex flex-wrap items-center gap-3 border-b border-border bg-bg/35 pb-3">
+    <nav className="flex flex-wrap items-center gap-3 border-b border-border bg-panel/70 pb-3">
       <Link href="/" className="font-mono text-lg tracking-tight text-ink">
         planifier<span className="text-accent">.</span>
       </Link>
@@ -21,7 +21,7 @@ export default function Nav() {
         <Link href="/plans" className="hover:text-ink">My plans</Link>
       </div>
       <span className="hidden rounded border border-amber/40 px-2 py-1 font-mono text-[10px] uppercase text-amber sm:inline-flex">
-        NFA / paper first
+        Paper-plan first
       </span>
       <SignedOut>
         <div className="flex items-center gap-2">

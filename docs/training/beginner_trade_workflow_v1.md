@@ -159,14 +159,14 @@ Avoid sidebars on mobile. Use sticky bottom actions: `Next`, `Back`, `Build plan
 
 ### Desktop
 
-Use a three-column learning desk:
+Use a two-zone worksheet:
 
-- Top: chart workspace as the main surface.
-- Left rail: walkthrough steps and learning mode.
-- Center: chart feedback, chat, and selected angle.
-- Right rail: plan fields, readiness, and generated plan.
+- Top: one command strip for market, timeframe, style, and the next action.
+- Main: chart workspace as the largest surface.
+- Side: walkthrough steps and the minimum plan checklist.
+- Below: starting angles, generated plan, chat, and scenario mapping only after the chart path is visible.
 
-The current `Chat.tsx` now mounts the chart workspace at the top of the same page. The next cleanup should split that into dedicated components while keeping the one-page learning flow.
+The current `/plan/new` page should avoid tall internal scroll panels. The learner should always be able to answer, "What do I do next?"
 
 ## What Tools A Beginner Needs
 

@@ -17,9 +17,9 @@ const PAD = 22;
 const CANDLE_WIDTH = 10;
 
 const TONE_STYLES: Record<ScenarioTone, { stroke: string; label: string }> = {
-  confirm: { stroke: "#9cff6a", label: "confirmation" },
-  fail: { stroke: "#ff6670", label: "failure" },
-  wait: { stroke: "#9aa4af", label: "wait" },
+  confirm: { stroke: "#2f7d32", label: "confirmation" },
+  fail: { stroke: "#b33a46", label: "failure" },
+  wait: { stroke: "#64726c", label: "wait" },
 };
 
 export default function ScenarioChart({
@@ -245,7 +245,7 @@ function ScenarioSvg({
       aria-label={`${example.title} scenario chart`}
       className="block aspect-[360/190] w-full"
     >
-      <rect width={WIDTH} height={HEIGHT} fill="#0d1117" />
+      <rect width={WIDTH} height={HEIGHT} fill="#fbfdf8" />
       {[0, 1, 2].map((line) => (
         <line
           key={line}
@@ -253,7 +253,7 @@ function ScenarioSvg({
           x2={WIDTH - PAD}
           y1={PAD + line * 54}
           y2={PAD + line * 54}
-          stroke="#242b33"
+          stroke="#dfe7e1"
           strokeWidth="1"
         />
       ))}
@@ -262,11 +262,11 @@ function ScenarioSvg({
         x2={WIDTH - PAD}
         y1={levelY}
         y2={levelY}
-        stroke="#8d99a6"
+        stroke="#8a9791"
         strokeDasharray="5 5"
         strokeWidth="1.5"
       />
-      <text x={PAD} y={levelY - 6} fill="#d4dbe2" fontSize="10">
+      <text x={PAD} y={levelY - 6} fill="#47564f" fontSize="10">
         {example.levelLabel}
       </text>
 
@@ -286,7 +286,7 @@ function ScenarioSvg({
               x2={x}
               y1={highY}
               y2={lowY}
-              stroke={up ? "#9cff6a" : "#ff6670"}
+              stroke={up ? "#2f7d32" : "#b33a46"}
               strokeWidth="1.5"
             />
             <rect
@@ -295,7 +295,7 @@ function ScenarioSvg({
               width={CANDLE_WIDTH}
               height={bodyHeight}
               rx="1"
-              fill={up ? "#9cff6a" : "#ff6670"}
+              fill={up ? "#2f7d32" : "#b33a46"}
               opacity="0.82"
             />
           </g>

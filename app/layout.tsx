@@ -39,12 +39,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Planifier",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#090a0d",
+  themeColor: "#f3f7f1",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -52,11 +52,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: "#4dd8ff",
-          colorBackground: "#090a0d",
-          colorText: "#f2f5f0",
-          colorInputBackground: "#12151b",
-          colorInputText: "#f2f5f0",
+          colorPrimary: "#0f766e",
+          colorBackground: "#ffffff",
+          colorText: "#17211d",
+          colorInputBackground: "#f3f7f1",
+          colorInputText: "#17211d",
         },
       }}
     >

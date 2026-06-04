@@ -228,9 +228,10 @@ Reference workflow: [docs/training/beginner_trade_workflow_v1.md](training/begin
 - `Stand aside` is a valid end state when the chart is unclear.
 
 **Desktop layout notes:**
-- Left rail: walkthrough progress.
-- Center: chart scan, chat, and selected angle.
-- Right rail: field review and plan result.
+- Top: command strip with market, timeframe, style, and next action.
+- Main: chart workspace as the largest visible surface.
+- Right rail: walkthrough progress and the minimum plan checklist.
+- Lower page: starting angles, chat, scenario map, and generated plan.
 
 **Empty state:** First-time user sees a short explanation: "You do not need a setup yet. Start by choosing one market to study."
 
