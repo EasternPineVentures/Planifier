@@ -18,19 +18,22 @@ Open: https://planifier.cloud/plan/new
 ## Test Flow
 
 1. Start from `/plan/new`.
-2. Choose the closest beginner path to "I do not know where to start."
-3. Pick `XLM/USD`.
-4. Pick `1H`.
-5. Confirm the fixed 1% risk guardrail is visible.
-6. Pick style: `Scalp`.
-7. Choose a starting angle.
-8. Click "Use this as the starting plan."
-9. Build the structured plan.
-10. Save it.
-11. Add a journal entry.
-12. Go to `/plans`.
-13. Reopen the saved plan.
-14. Check mobile layout.
+2. Confirm the **Beginner walkthrough** panel is visible in Still Learning mode.
+3. Choose the closest beginner path to "I do not know where to start."
+4. Pick `XLM/USD`.
+5. Pick `1H`.
+6. Confirm the fixed 1% risk guardrail is visible.
+7. Pick style: `Scalp`.
+8. Click "Find starting angles" from the walkthrough or the start panel.
+9. Choose a starting angle.
+10. Click "Use this as the starting plan."
+11. Confirm the walkthrough advances to field review / build.
+12. Build the structured plan.
+13. Open the saved plan and journal.
+14. Add a journal entry.
+15. Go to `/plans`.
+16. Reopen the saved plan.
+17. Check mobile layout.
 
 ## Notes Template
 
@@ -96,6 +99,7 @@ Do not add yet:
 | Start flow | User does not know which option to pick |
 | Language | Words like confirmation, invalidation, setup, and risk may need helper text |
 | Layout | Too much scroll or buried fields |
+| Walkthrough | Active step does not match what the user should do next |
 | AI output | Plan sounds generic instead of teaching |
 | Chart context | User does not know what to look at visually |
 | Save loop | Saving and reopening does not feel rewarding |

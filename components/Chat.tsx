@@ -16,6 +16,10 @@ import {
 } from "@/lib/plan/chartContext";
 import type { HistoricalScenarioMap } from "@/lib/plan/historicalScenarios";
 import { FIXED_RISK_PERCENT } from "@/lib/plan/risk";
+import {
+  getBeginnerWalkthroughSteps,
+  type BeginnerWalkthroughStep,
+} from "@/lib/plan/beginnerWalkthrough";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type LearningMode = "standard" | "beginner";
@@ -129,6 +133,9 @@ const FIELD_LABELS: Record<MissingField, string> = {
   chart: "chart context",
 };
 
+const BEGINNER_CONTEXT_EXAMPLE =
+  "Example: Trend is making higher lows. Key level is prior 4H support. Price is pulling back into that level now. Wrong if price closes below the support zone.";
+
 export default function Chat() {
   const [inputs, setInputs] = useState<PlanInputs>({
     ticker: "",
@@ -166,8 +173,11 @@ export default function Chat() {
     useState<HistoricalScenarioMap | null>(null);
   const [historicalBusy, setHistoricalBusy] = useState(false);
   const [historicalError, setHistoricalError] = useState<string | null>(null);
+  const [selectedAngleLabel, setSelectedAngleLabel] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const buildRef = useRef<HTMLElement | null>(null);
+  const startHereRef = useRef<HTMLElement | null>(null);
+  const planResultRef = useRef<HTMLDivElement | null>(null);
 
   const missing = useMemo(
     () => validateInputs({ ...inputs, hasImage: !!imageDataUrl }),
@@ -176,6 +186,25 @@ export default function Chat() {
   const ready = missing.length === 0;
   const chartChars = inputs.chartNote?.trim().length ?? 0;
   const missingLabels = missing.map((item) => FIELD_LABELS[item]);
+  const beginnerWalkthroughSteps = useMemo(
+    () =>
+      getBeginnerWalkthroughSteps({
+        hasMarketContext: Boolean(explorePair.trim() && exploreTimeframe),
+        hasStartingAngles: !!exploreResult,
+        hasSelectedAngle: !!selectedAngleLabel,
+        fieldsReady: ready,
+        hasPlan: !!structuredPlan,
+        hasSavedPlan: !!structuredPlan?.id,
+      }),
+    [
+      explorePair,
+      exploreTimeframe,
+      exploreResult,
+      selectedAngleLabel,
+      ready,
+      structuredPlan,
+    ]
+  );
 
   function updateInputs(next: Partial<PlanInputs>) {
     setInputs((current) => ({
@@ -275,6 +304,7 @@ export default function Chat() {
     setExploreBusy(true);
     setPlanError(null);
     setExploreResult(null);
+    setSelectedAngleLabel(null);
     setMessages((current) => [
       ...current,
       {
@@ -339,6 +369,7 @@ export default function Chat() {
   }
 
   function applyExploreCandidate(candidate: ExploreCandidate) {
+    setSelectedAngleLabel(candidate.label);
     setExplorePair(candidate.planSeed.ticker);
     setExploreTimeframe(candidate.planSeed.timeframe);
     setExploreStyle(candidate.planSeed.holdingPeriod);
@@ -451,6 +482,12 @@ export default function Chat() {
       if (res.ok) {
         const ok = data as { id: string; plan: Plan };
         setStructuredPlan(ok);
+        window.setTimeout(() => {
+          planResultRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 0);
         return;
       }
 
@@ -461,6 +498,12 @@ export default function Chat() {
       };
       if (res.status === 503 && errBody.plan) {
         setStructuredPlan({ id: "", plan: errBody.plan });
+        window.setTimeout(() => {
+          planResultRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 0);
       }
       setPlanError(
         errBody.message ??
@@ -533,7 +576,7 @@ export default function Chat() {
             </div>
           )}
           {structuredPlan && (
-            <div className="rounded border border-accent/30 bg-bg p-3">
+            <div ref={planResultRef} className="rounded border border-accent/30 bg-bg p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="font-mono text-[10px] uppercase text-muted">
                   structured plan
@@ -594,13 +637,48 @@ export default function Chat() {
       </section>
 
       <aside className="space-y-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
-        <section className="surface-panel rounded border border-border bg-panel p-4">
+        {learningMode === "beginner" && (
+          <BeginnerWalkthrough
+            steps={beginnerWalkthroughSteps}
+            pair={explorePair}
+            timeframe={exploreTimeframe}
+            style={exploreStyle}
+            selectedAngleLabel={selectedAngleLabel}
+            ready={ready}
+            hasPlan={!!structuredPlan}
+            planId={structuredPlan?.id ?? ""}
+            planBusy={planBusy}
+            exploreBusy={exploreBusy}
+            onStart={() =>
+              startHereRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              })
+            }
+            onFindAngles={exploreStartingAngles}
+            onReviewFields={() =>
+              buildRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              })
+            }
+            onBuild={buildStructuredPlan}
+            onReviewPlan={() =>
+              planResultRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              })
+            }
+          />
+        )}
+
+        <section ref={startHereRef} className="surface-panel rounded border border-border bg-panel p-4">
           <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            New? Start here
+            Step 1: find a starting angle
           </h2>
           <p className="mt-2 text-xs leading-relaxed text-muted">
-            If you do not know what setup to write, pick a pair and Planifier
-            will give you a few practice angles to choose from.
+            Pick a market and timeframe. Planifier will suggest educational
+            practice angles, then you choose one and turn it into a checklist.
           </p>
 
           <div className="mt-3">
@@ -800,6 +878,14 @@ export default function Chat() {
                   </p>
                 ))}
               </div>
+              <div className="mt-3 rounded border border-border/70 p-2">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                  chart note pattern
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  {BEGINNER_CONTEXT_EXAMPLE}
+                </p>
+              </div>
             </div>
           )}
 
@@ -995,6 +1081,228 @@ function BuilderStatus({
     </div>
   );
 }
+
+function BeginnerWalkthrough({
+  steps,
+  pair,
+  timeframe,
+  style,
+  selectedAngleLabel,
+  ready,
+  hasPlan,
+  planId,
+  planBusy,
+  exploreBusy,
+  onStart,
+  onFindAngles,
+  onReviewFields,
+  onBuild,
+  onReviewPlan,
+}: {
+  steps: BeginnerWalkthroughStep[];
+  pair: string;
+  timeframe: string;
+  style: string;
+  selectedAngleLabel: string | null;
+  ready: boolean;
+  hasPlan: boolean;
+  planId: string;
+  planBusy: boolean;
+  exploreBusy: boolean;
+  onStart: () => void;
+  onFindAngles: () => void;
+  onReviewFields: () => void;
+  onBuild: () => void;
+  onReviewPlan: () => void;
+}) {
+  const active = steps.find((step) => step.status === "active") ?? steps[0];
+
+  return (
+    <section className="surface-panel rounded border border-accent/40 bg-accent/5 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-accent">
+            Beginner walkthrough
+          </h2>
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            Start with a chart, choose one practice angle, build a checklist,
+            then journal what happened. This is paper-planning, not an order.
+          </p>
+        </div>
+        <span className="rounded border border-accent/40 px-2 py-1 text-[10px] uppercase text-accent">
+          fixed risk {FIXED_RISK_PERCENT}
+        </span>
+      </div>
+
+      <div className="mt-3 rounded border border-border bg-bg p-3 text-xs leading-relaxed text-muted">
+        <span className="text-ink">{pair || "Pick a market"}</span>
+        {" / "}
+        <span>{timeframe || "timeframe"}</span>
+        {" / "}
+        <span>{style}</span>
+        {selectedAngleLabel && (
+          <span className="block pt-1 text-accent">
+            Loaded angle: {selectedAngleLabel}
+          </span>
+        )}
+      </div>
+
+      <ol className="mt-3 space-y-2">
+        {steps.map((step, index) => {
+          const copy = BEGINNER_WALKTHROUGH_COPY[step.id];
+          return (
+            <li
+              key={step.id}
+              className={`grid grid-cols-[34px_minmax(0,1fr)] gap-2 rounded border p-2 ${
+                step.status === "active"
+                  ? "border-accent/60 bg-accent/10"
+                  : step.status === "done"
+                    ? "border-accent/30"
+                    : "border-border"
+              }`}
+            >
+              <span
+                className={`flex h-7 w-7 items-center justify-center rounded border text-[10px] ${
+                  step.status === "done"
+                    ? "border-accent text-accent"
+                    : step.status === "active"
+                      ? "border-accent bg-accent text-bg"
+                      : "border-border text-muted"
+                }`}
+              >
+                {step.status === "done" ? "OK" : index + 1}
+              </span>
+              <div>
+                <div className="text-sm font-medium text-ink">{copy.title}</div>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  {copy.body}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="mt-3">{renderBeginnerWalkthroughAction()}</div>
+    </section>
+  );
+
+  function renderBeginnerWalkthroughAction() {
+    if (active.id === "choose-context") {
+      return (
+        <button
+          type="button"
+          onClick={onStart}
+          className="w-full rounded border border-border px-3 py-2 text-left text-xs text-ink hover:border-muted"
+        >
+          Choose market and timeframe
+        </button>
+      );
+    }
+
+    if (active.id === "find-angles") {
+      return (
+        <button
+          type="button"
+          onClick={onFindAngles}
+          disabled={exploreBusy}
+          className="w-full rounded bg-accent px-3 py-2 text-sm font-medium text-bg disabled:opacity-40"
+        >
+          {exploreBusy ? "Finding angles..." : "Find starting angles"}
+        </button>
+      );
+    }
+
+    if (active.id === "choose-angle") {
+      return (
+        <button
+          type="button"
+          onClick={onStart}
+          className="w-full rounded border border-accent/50 px-3 py-2 text-left text-xs text-accent"
+        >
+          Review the angles and load one
+        </button>
+      );
+    }
+
+    if (active.id === "complete-fields") {
+      return (
+        <button
+          type="button"
+          onClick={onReviewFields}
+          className="w-full rounded border border-border px-3 py-2 text-left text-xs text-ink hover:border-muted"
+        >
+          Check the plan fields
+        </button>
+      );
+    }
+
+    if (active.id === "build-plan") {
+      return (
+        <button
+          type="button"
+          onClick={onBuild}
+          disabled={!ready || planBusy}
+          className="w-full rounded bg-accent px-3 py-2 text-sm font-medium text-bg disabled:opacity-40"
+        >
+          {planBusy ? "Building plan..." : "Build structured plan"}
+        </button>
+      );
+    }
+
+    if (planId) {
+      return (
+        <a
+          href={`/plans/${planId}`}
+          className="block w-full rounded border border-accent/50 px-3 py-2 text-center text-xs text-accent"
+        >
+          Open plan and journal
+        </a>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={onReviewPlan}
+        disabled={!hasPlan}
+        className="w-full rounded border border-border px-3 py-2 text-left text-xs text-ink hover:border-muted disabled:opacity-40"
+      >
+        Review the plan
+      </button>
+    );
+  }
+}
+
+const BEGINNER_WALKTHROUGH_COPY: Record<
+  BeginnerWalkthroughStep["id"],
+  { title: string; body: string }
+> = {
+  "choose-context": {
+    title: "Pick the chart to practice",
+    body: "Choose the market, timeframe, and style. Unsure is fine; the goal is to start from one real chart.",
+  },
+  "find-angles": {
+    title: "Find possible starting angles",
+    body: "Ask Planifier for educational angles. These are ideas to inspect, not signals to follow.",
+  },
+  "choose-angle": {
+    title: "Load one angle",
+    body: "Pick the angle that matches what you can actually see. Treat it as a draft that still needs proof.",
+  },
+  "complete-fields": {
+    title: "Name confirmation and wrong-if",
+    body: "Check the asset, timeframe, holding period, chart context, and what would prove the idea wrong.",
+  },
+  "build-plan": {
+    title: "Build the structured plan",
+    body: "Generate the checklist, invalidation, scenarios, and beginner translation before any paper entry.",
+  },
+  journal: {
+    title: "Save, practice, then journal",
+    body: "Open the saved plan and write what happened after the practice trade so the lesson is not lost.",
+  },
+};
 
 function InputRow({
   label,
