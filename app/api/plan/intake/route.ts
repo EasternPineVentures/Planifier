@@ -8,6 +8,7 @@ import {
   type PlanInputs,
 } from "@/lib/validation";
 import { FIXED_RISK_PERCENT, isFixedRiskPercent } from "@/lib/plan/risk";
+import { getBeginnerCoachMessage } from "@/lib/plan/beginnerCoach";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
         "Only use holdingPeriod values Scalp, Day, Swing, or Position. Infer holding period only from clear language such as scalp, intraday, day trade, swing, or position. " +
         "Build chartNote from the user's actual chart context: trend, levels, current price behavior, uncertainty, and invalidation. " +
         "If chart context is too vague, leave chartNote null and ask for concrete levels or structure. " +
+        "If the user sounds unsure or only gives a rough thought, do not scold them for missing fields. Tell them the next single beginner step: choose a timeframe/style and find educational starting angles. " +
         "Never give a buy/sell signal, prediction, or financial advice. The assistantMessage must be brief and useful.",
       messages: [
         {
@@ -98,6 +100,14 @@ export async function POST(req: Request) {
       : intake.assistantMessage;
   const planInputs: PlanInputs = { ...mergedInputs, hasImage: !!imageDataUrl };
   const missing = validateInputs(planInputs);
+  const beginnerAssistantMessage = getBeginnerCoachMessage({
+    inputs: planInputs,
+    missing,
+  });
+  const coachedAssistantMessage =
+    attemptedRisk && !isFixedRiskPercent(attemptedRisk)
+      ? withFixedRiskNotice(beginnerAssistantMessage)
+      : beginnerAssistantMessage;
   const mismatch =
     mergedInputs.timeframe && mergedInputs.holdingPeriod
       ? inferTimeframeMismatch(mergedInputs.timeframe, mergedInputs.holdingPeriod)
@@ -105,7 +115,7 @@ export async function POST(req: Request) {
 
   return Response.json({
     ...intake,
-    assistantMessage,
+    assistantMessage: coachedAssistantMessage || assistantMessage,
     inputs: mergedInputs,
     missing,
     mismatch,
@@ -181,6 +191,21 @@ function heuristicIntake(message: string, currentInputs: PlanInputs): IntakeResu
   const chartNote =
     message.trim().length >= 80 ? message.trim() : currentInputs.chartNote ?? null;
 
+  const mergedInputs: PlanInputs = {
+    ticker: ticker || undefined,
+    timeframe: timeframe || undefined,
+    holdingPeriod:
+      holdingPeriod === "Scalp" ||
+      holdingPeriod === "Day" ||
+      holdingPeriod === "Swing" ||
+      holdingPeriod === "Position"
+        ? holdingPeriod
+        : undefined,
+    riskPercent,
+    chartNote: chartNote || undefined,
+  };
+  const missing = validateInputs(mergedInputs);
+
   return {
     inputs: {
       ticker: ticker || null,
@@ -196,8 +221,7 @@ function heuristicIntake(message: string, currentInputs: PlanInputs): IntakeResu
       chartNote: chartNote || null,
     },
     userQuestion: /\?/.test(message) ? message.trim() : null,
-    assistantMessage:
-      "I captured what I could from that. Add any missing asset, timeframe, holding period, or concrete chart levels before building the plan.",
+    assistantMessage: getBeginnerCoachMessage({ inputs: mergedInputs, missing }),
     extractedFields: [],
     confidence: "low",
   };

@@ -43,7 +43,7 @@ export default function Page() {
         <ActionCard
           href="/plan/new"
           title="Build New Plan"
-          body="Upload or describe a chart and turn it into a structured plan."
+          body="Start from one market, find beginner angles, then turn one into a structured plan."
           primary
         />
 
@@ -53,20 +53,11 @@ export default function Page() {
           body="Review plans, strategy notes, and journal entries."
         />
 
-        <div className="surface-panel rounded border border-border bg-panel/70 p-4">
-          <div className="text-base font-medium text-ink">Learning Workspace</div>
-          <p className="mt-1 text-sm text-muted">
-            Practice explaining your setup before risking real money.
-          </p>
-          <button
-            type="button"
-            disabled
-            className="mt-3 w-full rounded border border-border px-3 py-3 text-sm text-muted opacity-70"
-            aria-disabled="true"
-          >
-            Coming soon
-          </button>
-        </div>
+        <ActionCard
+          href="/plan/new"
+          title="Learning Workspace"
+          body="Do not know where to start? Use beginner mode to pick a chart, scan it, choose a practice angle, and journal the result."
+        />
       </section>
 
       <footer className="border-t border-border pt-3 text-[11px] leading-relaxed text-muted">

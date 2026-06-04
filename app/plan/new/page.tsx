@@ -11,8 +11,9 @@ export default async function NewPlanPage() {
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6">
       <Nav />
       <p className="text-sm text-muted">
-        Start with a pair, a screenshot, or plain English. Planifier turns that
-        into an educational paper-trade plan with confirmation and invalidation.
+        If you do not know where to start, use the Start here panel. Pick one
+        market and timeframe, then Planifier will help you find beginner
+        starting angles before building a paper-trade plan.
       </p>
       <Chat />
       <footer className="border-t border-border pt-3 text-[11px] leading-relaxed text-muted">

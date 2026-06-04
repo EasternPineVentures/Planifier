@@ -20,6 +20,10 @@ import {
   getBeginnerWalkthroughSteps,
   type BeginnerWalkthroughStep,
 } from "@/lib/plan/beginnerWalkthrough";
+import {
+  getBeginnerCoachMessage,
+  normalizeBeginnerExplorePair,
+} from "@/lib/plan/beginnerCoach";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type LearningMode = "standard" | "beginner";
@@ -97,6 +101,7 @@ const CHART_EXAMPLES = [
 
 const EXPLORE_TIMEFRAMES = ["15m", "1H", "4H", "1D"] as const;
 const EXPLORE_STYLES = ["Unsure", "Scalp", "Day", "Swing", "Position"] as const;
+const QUICK_START_PAIRS = ["BTC/USD", "ETH/USD", "SPY", "NVDA"] as const;
 const LEARNING_MODES: Array<{ value: LearningMode; label: string }> = [
   { value: "beginner", label: "Still learning" },
   { value: "standard", label: "Standard" },
@@ -150,7 +155,7 @@ export default function Chat() {
     {
       role: "assistant",
       content:
-        `Write the setup in plain English. I will pull out the asset, timeframe, holding period, and chart context. Risk stays fixed at ${FIXED_RISK_PERCENT}.`,
+        `If you do not know where to start, use the Start here panel above. Pick one market and timeframe, then I will help you find beginner starting angles. Risk stays fixed at ${FIXED_RISK_PERCENT}.`,
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -264,23 +269,48 @@ export default function Chat() {
       }
 
       if (data.inputs) {
-        setInputs({
+        const nextInputs: PlanInputs = {
           ticker: data.inputs.ticker ?? "",
           timeframe: data.inputs.timeframe ?? "",
           holdingPeriod: normalizeHoldingPeriod(data.inputs.holdingPeriod),
           riskPercent: FIXED_RISK_PERCENT,
           chartNote: data.inputs.chartNote ?? "",
-        });
+        };
+        setInputs(nextInputs);
+        if (nextInputs.ticker) {
+          setExplorePair(normalizeBeginnerExplorePair(nextInputs.ticker));
+        }
+        if (nextInputs.timeframe) {
+          setExploreTimeframe(nextInputs.timeframe);
+        }
+        if (nextInputs.holdingPeriod) {
+          setExploreStyle(nextInputs.holdingPeriod);
+        }
       }
       if (data.userQuestion) setQuestion(data.userQuestion);
       setMismatch(data.mismatch ?? null);
+      const nextInputs = data.inputs
+        ? {
+            ticker: data.inputs.ticker ?? "",
+            timeframe: data.inputs.timeframe ?? "",
+            holdingPeriod: normalizeHoldingPeriod(data.inputs.holdingPeriod),
+            riskPercent: FIXED_RISK_PERCENT,
+            chartNote: data.inputs.chartNote ?? "",
+            hasImage: !!imageDataUrl,
+          }
+        : { ...inputs, hasImage: !!imageDataUrl };
+      const nextMissing = data.missing ?? validateInputs(nextInputs);
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
-          content:
-            data.assistantMessage ??
-            "I updated the plan fields. Check what I captured, then add anything missing.",
+          content: learningMode === "beginner"
+            ? getBeginnerCoachMessage({
+                inputs: nextInputs,
+                missing: nextMissing,
+              })
+            : data.assistantMessage ??
+              "I updated the plan fields. Check what I captured, then add anything missing.",
         },
       ]);
     } catch (e) {
@@ -550,19 +580,43 @@ export default function Chat() {
               ))}
             </div>
           </div>
-          <BuilderStatus
-            ready={ready}
-            hasPlan={!!structuredPlan}
-            planBusy={planBusy}
-            missingLabels={missingLabels}
-            onBuild={buildStructuredPlan}
-            onReview={() =>
-              buildRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              })
-            }
-          />
+          {learningMode === "beginner" ? (
+            <StartHerePanel
+              pair={explorePair}
+              timeframe={exploreTimeframe}
+              style={exploreStyle}
+              ready={ready}
+              hasPlan={!!structuredPlan}
+              exploreBusy={exploreBusy}
+              planBusy={planBusy}
+              missingLabels={missingLabels}
+              onPairPick={setExplorePair}
+              onTimeframePick={setExploreTimeframe}
+              onStylePick={setExploreStyle}
+              onFindAngles={exploreStartingAngles}
+              onBuild={buildStructuredPlan}
+              onReviewFields={() =>
+                buildRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
+            />
+          ) : (
+            <BuilderStatus
+              ready={ready}
+              hasPlan={!!structuredPlan}
+              planBusy={planBusy}
+              missingLabels={missingLabels}
+              onBuild={buildStructuredPlan}
+              onReview={() =>
+                buildRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
+            />
+          )}
         </div>
 
         <div className="max-h-[420px] min-h-[220px] space-y-3 overflow-y-auto p-4 xl:max-h-[38vh]">
@@ -1011,6 +1065,165 @@ export default function Chat() {
           </details>
         </section>
       </aside>
+    </div>
+  );
+}
+
+function StartHerePanel({
+  pair,
+  timeframe,
+  style,
+  ready,
+  hasPlan,
+  exploreBusy,
+  planBusy,
+  missingLabels,
+  onPairPick,
+  onTimeframePick,
+  onStylePick,
+  onFindAngles,
+  onBuild,
+  onReviewFields,
+}: {
+  pair: string;
+  timeframe: string;
+  style: string;
+  ready: boolean;
+  hasPlan: boolean;
+  exploreBusy: boolean;
+  planBusy: boolean;
+  missingLabels: string[];
+  onPairPick: (pair: string) => void;
+  onTimeframePick: (timeframe: string) => void;
+  onStylePick: (style: (typeof EXPLORE_STYLES)[number]) => void;
+  onFindAngles: () => void;
+  onBuild: () => void;
+  onReviewFields: () => void;
+}) {
+  const status = hasPlan
+    ? "Plan built. Read it, then journal what actually happened."
+    : ready
+      ? "You have enough to build a paper-plan draft."
+      : missingLabels.length > 0
+        ? `After starting angles, finish: ${missingLabels.join(", ")}.`
+        : "Choose one market and timeframe. That is enough to begin.";
+
+  return (
+    <div className="mt-3 rounded border border-accent/40 bg-accent/5 p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="font-mono text-[10px] uppercase tracking-wider text-accent">
+            Start here
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            You do not need a perfect setup yet. Pick one market, one timeframe,
+            and one practice style. Planifier will find beginner angles from there.
+          </p>
+        </div>
+        <span className="shrink-0 rounded border border-accent/40 px-2 py-1 font-mono text-[10px] uppercase text-accent">
+          {pair || "BTC/USD"} / {timeframe || "4H"}
+        </span>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-3">
+        <div>
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-muted">
+            Market
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {QUICK_START_PAIRS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onPairPick(option)}
+                className={`rounded border px-2 py-2 text-xs ${
+                  pair === option
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-ink hover:border-muted"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-muted">
+            Timeframe
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {EXPLORE_TIMEFRAMES.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onTimeframePick(option)}
+                className={`rounded border px-2 py-2 text-xs ${
+                  timeframe === option
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-ink hover:border-muted"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-muted">
+            Style
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {EXPLORE_STYLES.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onStylePick(option)}
+                className={`rounded border px-2 py-2 text-xs ${
+                  style === option
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-ink hover:border-muted"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs leading-relaxed text-muted">{status}</p>
+        <div className="flex shrink-0 gap-2">
+          {ready ? (
+            <button
+              type="button"
+              onClick={onBuild}
+              disabled={planBusy}
+              className="rounded bg-accent px-3 py-2 text-xs font-medium text-bg disabled:opacity-40"
+            >
+              {planBusy ? "Building..." : "Build plan"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onReviewFields}
+              className="rounded border border-border px-3 py-2 text-xs text-ink hover:border-muted"
+            >
+              See fields
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onFindAngles}
+            disabled={exploreBusy || !pair.trim()}
+            className="rounded bg-accent px-3 py-2 text-xs font-medium text-bg disabled:opacity-40"
+          >
+            {exploreBusy ? "Finding..." : "Find starting angles"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
