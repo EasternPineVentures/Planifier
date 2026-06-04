@@ -145,6 +145,7 @@ The guided builder lives at `/plan/new` (`<Chat />`); `/` is a landing/command s
 - **Structured Plan (`/api/plan`)** — `generateObject` with the zod `PlanSchema`. Always returns the seven sections plus a disclaimer, timeframe-mismatch warning, and optional cognitive-bias notes. Persisted to Postgres so it shows up under **My plans** and can be journaled.
 - **Intake (`/api/plan/intake`)** — helper step that turns raw, messy user input into the structured plan inputs the builder needs.
 - **Explore (`/api/plan/explore`)** — context-gathering step that pulls public Kraken market data and news RSS, plus **context-only** FoxClaw advisory data, to inform educational starting angles. It never produces signals or trade authority. See [docs/context/foxclaw_planifier_bridge.md](docs/context/foxclaw_planifier_bridge.md).
+- **Beginner workflow** — the start-to-finish learning path is documented in [docs/training/beginner_trade_workflow_v1.md](docs/training/beginner_trade_workflow_v1.md). It teaches market selection, chart scanning, setup angles, plan fields, paper practice, and journaling.
 
 ## Input gating (the five required inputs)
 
@@ -154,7 +155,7 @@ The guided builder lives at `/plan/new` (`<Chat />`); `/` is a landing/command s
 2. Chart timeframe
 3. Holding period (Scalp / Day / Swing / Position)
 4. Risk per trade %
-5. Chart screenshot **or** a written description >20 chars
+5. Chart screenshot **or** an 80+ useful-character written description
 
 Plus a timeframe-vs-holding-period sanity check.
 

@@ -193,3 +193,43 @@ Per-screen specs for the mobile-first product. Routes marked *(proposed)* don't 
 - Sign out
 
 **Out of scope for V1.**
+
+---
+
+## 8. Beginner Learning Workspace - `/learn` *(proposed)*
+
+**Purpose:** Teach a beginner how to find and structure a paper-trade setup from start to finish before asking them to generate a plan.
+
+Reference workflow: [docs/training/beginner_trade_workflow_v1.md](training/beginner_trade_workflow_v1.md).
+
+**Primary action:** Start guided walkthrough.
+
+**Flow:**
+1. Pick market, timeframe, and style.
+2. Scan the chart: trend, key levels, current location, confirmation, invalidation.
+3. Choose one practice angle: continuation, breakout retest, range edge, failed move, or stand aside.
+4. Review draft plan fields.
+5. Build structured plan.
+6. Journal outcome.
+
+**Required components:**
+- `ChartScanChecklist` - visible checklist for what to look at on a chart.
+- `StartingAngleExplorer` - cards for possible educational angles.
+- `BeginnerWalkthroughPanel` - current step, why it matters, and next action.
+- `PlanFieldReview` - editable draft fields with plain-English help.
+- `PlanResultPanel` - structured plan result with still-learning translation first.
+
+**Mobile layout notes:**
+- One task per screen.
+- Sticky bottom `Back` / `Next` actions.
+- No sidebar.
+- `Stand aside` is a valid end state when the chart is unclear.
+
+**Desktop layout notes:**
+- Left rail: walkthrough progress.
+- Center: chart scan, chat, and selected angle.
+- Right rail: field review and plan result.
+
+**Empty state:** First-time user sees a short explanation: "You do not need a setup yet. Start by choosing one market to study."
+
+**Error state:** Context fetch fails -> keep the walkthrough usable with manual chart notes and screenshot upload.
