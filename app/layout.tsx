@@ -1,16 +1,39 @@
 import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import LiveHeadlineBanner from "@/components/LiveHeadlineBanner";
 import { getAppUrl } from "@/lib/appUrl";
+import { planifierClerkAppearance } from "@/lib/auth/clerkAppearance";
 import "./globals.css";
 
 // Entire app is auth-gated and personalized; no value in static prerender.
 export const dynamic = "force-dynamic";
 
 const appUrl = getAppUrl();
-const metadataTitle = "Planifier - Trading Planning Assistant";
+const metadataTitle = "Planifier by Eastern Pine Ventures";
 const metadataDescription =
-  "Turn confusing charts into structured educational trade plans. Paper-trading planning only; not financial advice.";
+  "A free-first trading learning notebook for turning lessons and chart ideas into structured paper plans. Saving is designed as a one-time unlock.";
+
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-ibm-plex-sans",
+  display: "swap",
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-ibm-plex-mono",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: appUrl,
@@ -44,24 +67,16 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f3f7f1",
+  themeColor: "#07110f",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: "#0f766e",
-          colorBackground: "#ffffff",
-          colorText: "#17211d",
-          colorInputBackground: "#f3f7f1",
-          colorInputText: "#17211d",
-        },
-      }}
-    >
+    <ClerkProvider appearance={planifierClerkAppearance}>
       <html lang="en">
-        <body className="min-h-screen bg-bg text-ink">
+        <body
+          className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} ${spaceGrotesk.variable} min-h-screen bg-bg text-ink`}
+        >
           <LiveHeadlineBanner />
           {children}
         </body>

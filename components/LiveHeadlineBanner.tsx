@@ -53,7 +53,7 @@ export default function LiveHeadlineBanner() {
     return (
       <div className="border-b border-border bg-panel/90 px-3 py-2 text-[11px] text-muted">
         <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <span className="font-mono uppercase tracking-wider text-accent">
+          <span className="epv-kicker !text-[10px]">
             Live context
           </span>
           <span>
@@ -71,10 +71,10 @@ export default function LiveHeadlineBanner() {
   return (
     <section
       aria-label="Live market headline context"
-      className="overflow-hidden border-b border-border bg-panel/90 shadow-[inset_0_-1px_0_rgba(15,118,110,0.08)]"
+      className="overflow-hidden border-b border-border bg-panel/90 shadow-[inset_0_-1px_0_rgba(242,184,75,0.12)]"
     >
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 py-2">
-        <div className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-accent">
+        <div className="epv-kicker shrink-0 !text-[10px]">
           Live context
         </div>
         <div className="relative min-w-0 flex-1 overflow-hidden">
@@ -85,9 +85,9 @@ export default function LiveHeadlineBanner() {
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex max-w-[360px] shrink-0 items-center gap-2 rounded border border-border bg-bg/80 px-3 py-1.5 text-[11px] text-ink hover:border-accent/60"
+                className="group flex max-w-[360px] shrink-0 items-center gap-2 border border-border bg-bg/80 px-3 py-1.5 text-[11px] text-ink hover:border-accent/60"
               >
-                <span className="rounded border border-amber/30 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber">
+                <span className="border border-amber/30 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber">
                   {item.assetLabel}
                 </span>
                 <span className="truncate">{item.title}</span>

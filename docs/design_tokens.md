@@ -6,18 +6,23 @@ Current tokens live in `tailwind.config.mjs`. This file is the source of truth f
 
 | Role | Token | Value | When to use |
 |---|---|---|---|
-| Background app | `bg` | `#f3f7f1` | Page background and quiet input fills |
-| Background panel/card | `panel` | `#ffffff` | Cards, sidebars, sheets, major work surfaces |
-| Border | `border` | `#cfd8d3` | Dividers, card edges, input outlines |
-| Ink primary | `ink` | `#17211d` | Body copy, headings |
-| Ink muted | `muted` | `#64726c` | Labels, hints, timestamps, disclaimers |
-| Accent discipline | `accent` | `#0f766e` | Primary CTAs, focus rings, progress, valid markers |
-| Support practice | `lime` | `#7fb33d` | Support/readiness accents, never a buy signal |
-| Context warning | `amber` | `#c77b2a` | Watch areas, resistance, extra context |
-| Warning risk/danger | `danger` | `#b33a46` | Risk warnings, invalidation triggered, missing-input errors, timeframe mismatch |
+| Background app | `bg` / `--bg-main` | `#050807` | Page background and quiet input fills |
+| Background panel/card | `panel` / `--bg-panel` | `#0D1512` | Cards, sidebars, sheets, major work surfaces |
+| Border | `border` / `--pine` | `#174D36` | Dividers, card edges, input outlines |
+| Ink primary | `ink` / `--text-main` | `#E7FFF3` | Body copy, headings |
+| Ink muted | `muted` / `--text-muted` | `#9BAAA1` | Labels, hints, timestamps, disclaimers |
+| Accent discipline | `accent` / `--fox-copper` | `#C46A2B` | Primary CTAs, focus rings, progress, valid markers |
+| Support practice | `support` / `--pine-soft` | `#6F8F72` | Support/readiness accents, never a buy signal |
+| Context note | `amber` / `--signal-amber` | `#FFB84D` | Watch areas, resistance, extra context |
+| Warning risk/danger | `danger` / `--danger` | `#EF4444` | Risk warnings, invalidation triggered, missing-input errors, timeframe mismatch |
+| Positive signal | `success` / `--success` | `#22C55E` | Positive chart candles and completion states |
+| Terminal signal | `terminal-green` / `--terminal-green` | `#35FF9A` | High-emphasis confirmations and active chart levels |
+| Fox highlight | `foxfire-gold` / `--foxfire-gold` | `#D6A84F` | Small fox-brand highlights only |
 
 **Hard rules:**
 - `accent` is the "you're on track" color. It is not "buy".
+- `terminal-green` and `success` can mark confirmation or positive chart movement, but never mean "buy."
+- `support` is a quiet pine support/readiness color, not a command.
 - `danger` is the "stop and read this" color. It is not "sell".
 - Bullish and bearish scenario text is rendered in `ink` unless the UI is specifically labeling a support/failure marker.
 - Color is never the only signal. Always pair it with clear text.
@@ -100,10 +105,23 @@ Invalid input:
 className="... border-danger"
 ```
 
+## EPV Product Shell
+
+Planifier should feel connected to Eastern Pine Ventures without becoming a marketing page.
+
+Use the shell for the main desk, nav, and product model surfaces:
+- Pine background.
+- Copper/gold accent rail.
+- Small-radius chips.
+- Comfortable line height around lesson and planning copy.
+- Direct routes into chart, builder, notebook, and Trading School.
+
+Keep the first screen useful. It should act like a planning desk, not a promo page.
+
 ## What We Are Not Adding Yet
 
 - No theming provider; Tailwind tokens are sufficient for V1.
-- No theme switcher; V1 uses one light worksheet mode.
+- No theme switcher; V1 uses one dark worksheet mode.
 - No motion library; micro-interactions can come later.
 - No icon library yet; add `lucide-react` only when icon count justifies a dependency.
 - No second font family.
