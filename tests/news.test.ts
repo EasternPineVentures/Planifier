@@ -37,6 +37,21 @@ describe("news RSS helpers", () => {
     });
   });
 
+  it("cleans numeric entities and common feed mojibake", () => {
+    const xml = `
+      <rss><channel>
+        <item>
+          <title>Strategy\u00e2\u20ac\u2122s model &#x2018;stress test&#x2019; continues</title>
+          <link>https://example.com/strategy-stress-test</link>
+        </item>
+      </channel></rss>
+    `;
+
+    const items = parseRssItems(xml);
+
+    expect(items[0].title).toBe("Strategy's model 'stress test' continues");
+  });
+
   it("groups headline tape items by asset type", () => {
     const items: HeadlineTapeItem[] = [
       {

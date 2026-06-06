@@ -275,13 +275,45 @@ function stripCdata(value: string): string {
 }
 
 function decodeXml(value: string): string {
+  return repairMojibake(
+    value
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&#x([0-9a-f]+);/gi, (_match, hex: string) =>
+        safeCodePoint(Number.parseInt(hex, 16))
+      )
+      .replace(/&#([0-9]+);/g, (_match, code: string) =>
+        safeCodePoint(Number.parseInt(code, 10))
+      )
+  );
+}
+
+function safeCodePoint(value: number): string {
+  if (!Number.isFinite(value) || value < 0) return "";
+  try {
+    return String.fromCodePoint(value);
+  } catch {
+    return "";
+  }
+}
+
+function repairMojibake(value: string): string {
   return value
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u00e2\u20ac\u2122/g, "'")
+    .replace(/\u00e2\u20ac\u02dc/g, "'")
+    .replace(/\u00e2\u20ac\u0153/g, '"')
+    .replace(/\u00e2\u20ac\u009d/g, '"')
+    .replace(/\u00e2\u20ac\u201c/g, "-")
+    .replace(/\u00e2\u20ac\u201d/g, "-")
+    .replace(/\u00c2\u00a0/g, " ")
+    .replace(/\u00c2/g, "");
 }
 
 function matchedTerms(

@@ -24,6 +24,15 @@ The first screen should be chart-first. It should ask for:
 - Timeframe: `15m`, `1H`, `4H`, `1D`.
 - Style: unsure, scalp, day, swing, position.
 
+The market picker should include a grouped beginner list so users do not need to
+guess valid symbols:
+
+- Crypto: `BTC/USD`, `ETH/USD`, `SOL/USD`, `XRP/USD`.
+- ETFs: `SPY`, `QQQ`, `IWM`.
+- Stocks: `AAPL`, `MSFT`, `NVDA`, `TSLA`.
+- Forex: `EUR/USD`, `GBP/JPY`, `USD/JPY`.
+- Metals: `GOLD`, `SILVER`.
+
 Plain-English teaching:
 
 ```text
@@ -45,6 +54,50 @@ Beginner mode should teach the user to scan the chart in this order:
 7. Journal question: what should the user review afterward?
 
 This should become a visible checklist and a live chart read, not hidden text.
+
+The first visible charting-basics lesson should teach:
+
+- Trend: higher highs/lows, lower highs/lows, or sideways.
+- Key levels: support, resistance, prior highs/lows, and retest zones.
+- Current location: near a level, in the middle, breaking out, or retesting.
+- Confirmation: what price must do before the idea matters more.
+- Invalidation: what would prove the idea wrong.
+- Volume context: useful context, not proof by itself.
+
+### 2a. Explain Every Indicator In Still Learning Mode
+
+If Planifier uses or mentions an indicator in Still Learning mode, it must
+explain the indicator before using it as plan context. A beginner should not see
+`RSI`, `MACD`, `moving average`, `Bollinger Bands`, `volume`, or any other tool
+as unexplained expert vocabulary.
+
+Every indicator explanation should answer:
+
+```text
+What it measures:
+What data it uses:
+How to read high/low/rising/falling:
+What it seems to say on this chart:
+What it cannot prove:
+Common false signal:
+How it connects to trend/support/resistance:
+What would confirm:
+What would invalidate:
+```
+
+Indicator language must stay educational and conditional. It should read like:
+
+```text
+RSI is momentum context. A low reading can mean price moved down quickly, but it
+does not automatically mean price must bounce. The plan still needs support,
+confirmation, and invalidation.
+```
+
+It should not read like:
+
+```text
+RSI is oversold, so buy.
+```
 
 ### 3. Choose One Practice Angle
 
@@ -124,10 +177,24 @@ This will work.
 
 Planifier should help the user practice without real execution:
 
+- Save the chart idea as a practice trade before the outcome is known.
 - Mark the plan as watching, active, invalidated, completed, or abandoned.
 - Let the user record whether the checklist was followed.
 - Show the original invalidation so the user cannot quietly rewrite history.
 - Encourage screenshots or notes after the fact.
+
+Saved practice trades should capture the chart context that existed at the
+decision point:
+
+- Asset, timeframe, and style.
+- Current price from the newest candle.
+- Support, resistance, and invalidation.
+- The plain-English chart read.
+- Status: watching, paper-entered, reviewed, or skipped.
+
+V1 may store this locally in the browser so the workflow can be tested quickly.
+The paid version should move the same object to cloud storage and unlock durable
+history, review filters, chart snapshots, and cross-device sync.
 
 ### 7. Journal The Outcome
 
@@ -164,7 +231,7 @@ Use a two-zone worksheet:
 - Top: one command strip for market, timeframe, style, and the next action.
 - Main: chart workspace as the largest surface.
 - Side: walkthrough steps and the minimum plan checklist.
-- Below: starting angles, generated plan, chat, and scenario mapping only after the chart path is visible.
+- Bottom: starting angles, generated plan, chat, and historical scenario examples only after the chart path is visible.
 
 The current `/plan/new` page should avoid tall internal scroll panels. The learner should always be able to answer, "What do I do next?"
 
@@ -203,6 +270,7 @@ The first built-in version can use generated practice charts. Later versions can
   - `PlanResultPanel`
 - Persist selected angle and chart scan separately from the generated plan.
 - Add plan status: watching, active, invalidated, completed, abandoned.
+- Promote browser-local saved practice trades into a paid cloud-synced journal.
 
 ### Later
 

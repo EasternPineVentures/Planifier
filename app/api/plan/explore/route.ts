@@ -232,14 +232,14 @@ function fallbackExplore({
   const headlineNote = newsSnapshot.articles.length
     ? `${newsSnapshot.articles.length} recent matching crypto headlines were found.`
     : "No recent matching crypto headlines were found from the RSS sources checked.";
-  const beginnerPrefix =
+  const beginnerOverviewNote =
     learningMode === "beginner"
-      ? "In simple terms, this is a practice idea that needs proof before it matters. "
+      ? "Still Learning: treat these as practice angles until confirmation and invalidation are clear. "
       : "";
 
   return {
     overview:
-      `${beginnerPrefix}${snapshotLine} Treat these as paper-trade planning angles, not signals.`,
+      `${beginnerOverviewNote}${snapshotLine} Treat these as paper-trade planning angles, not signals.`,
     dataNotes: [
       marketSnapshot
         ? "Kraken public OHLC data was used for a lightweight chart snapshot."
@@ -253,7 +253,6 @@ function fallbackExplore({
         label: "Continuation after confirmation",
         bias: marketSnapshot?.trendLabel === "downtrend" ? "short" : "long",
         thesis:
-          beginnerPrefix +
           "If the current trend remains intact, the cleanest lesson is waiting for confirmation: a clear clue that the idea is still behaving as expected.",
         whatToWaitFor: [
           "A candle close that confirms direction near a clear level.",
@@ -285,7 +284,6 @@ function fallbackExplore({
         label: "Failed move or reversal watch",
         bias: "neutral",
         thesis:
-          beginnerPrefix +
           "If the market rejects the obvious level, the better lesson may be patience around a failed move: a move that starts one way, then quickly proves weak.",
         whatToWaitFor: [
           "A failed breakout or failed breakdown at a clear level.",

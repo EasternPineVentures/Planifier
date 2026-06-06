@@ -81,6 +81,9 @@ When the request says the user selected Still Learning mode, include `beginnerGu
 
 `beginnerGuide` rules:
 - Explain terms like confirmation, invalidation, support, resistance, timeframe, candle, stop, and risk when they appear.
+- If any indicator appears, including RSI, MACD, moving averages, Bollinger Bands, volume, volatility, trendline tools, or oscillator language, explain it in plain English before using it as plan context.
+- For each indicator, explain what it measures, what data it uses, how to read it, what it seems to say in this plan, what it cannot prove, one common false signal, how it connects to trend/support/resistance, what would confirm, and what would invalidate.
+- Never treat an indicator as permission to enter. Say it is context only unless the user has a full plan with confirmation and invalidation.
 - Use simple language a brand-new learner can follow without talking down to them.
 - Explain exactly what the term means inside this plan, not only a dictionary definition.
 - Keep the language educational and conditional. Do not turn explanations into trade commands.
