@@ -27,6 +27,14 @@ Planifier does not:
 
 Planifier is for educational, planning, and paper-trading workflows.
 
+## Commercial Model
+
+Planifier is free-first. Core learning, chart study, setup thinking, and paper-plan building should remain free.
+
+Persistent saving is the intended paid feature: a simple one-time unlock, currently scoped at $5, for saved notebooks, journals, exports, and saved chart levels. The core product should not require a monthly subscription.
+
+See [docs/product/free_save_unlock_v1.md](docs/product/free_save_unlock_v1.md) for the current product boundary.
+
 ## Stack
 
 - **Next.js 15** (App Router, React 19) — `app/`
