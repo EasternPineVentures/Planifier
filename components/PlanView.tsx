@@ -26,6 +26,66 @@ export default function PlanView({
         </PlanSection>
       )}
 
+      {plan.chartSave && (
+        <PlanSection
+          title="Saved chart levels"
+          summary={`${plan.chartSave.symbol} / ${plan.chartSave.timeframe}`}
+          defaultOpen
+          accent
+        >
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              <LevelMetric label="Entry" value={formatPlanLevel(plan.chartSave.entry)} />
+              <LevelMetric label="Stop" value={formatPlanLevel(plan.chartSave.stop)} />
+              <LevelMetric label="Target" value={formatPlanLevel(plan.chartSave.target)} />
+              <LevelMetric
+                label="R/R"
+                value={
+                  plan.chartSave.riskReward === null
+                    ? "n/a"
+                    : `${plan.chartSave.riskReward.toFixed(2)}R`
+                }
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/chart?pair=${encodeURIComponent(
+                  plan.chartSave.symbol
+                )}&timeframe=${encodeURIComponent(plan.chartSave.timeframe)}`}
+                className="rounded border border-accent/60 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:border-accent"
+              >
+                Open on chart
+              </a>
+              <a
+                href={plan.chartSave.tradingViewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded border border-border px-3 py-2 text-xs text-muted hover:border-muted hover:text-ink"
+              >
+                TradingView
+              </a>
+            </div>
+            <p className="text-xs leading-relaxed text-muted">
+              Saved {formatSavedAt(plan.chartSave.savedAt)}
+              {plan.chartSave.selectedCandleTime
+                ? ` from candle ${plan.chartSave.selectedCandleTime}`
+                : ""}
+              . These levels are for review and journaling, not execution.
+            </p>
+          </div>
+        </PlanSection>
+      )}
+
+      {plan.chartSave && (
+        <PlanSection
+          title="Paper practice handoff"
+          summary="Review packet, not execution"
+          defaultOpen
+        >
+          <PaperPracticeHandoff plan={plan} />
+        </PlanSection>
+      )}
+
       <PlanSection
         title="Disclaimer"
         summary="Educational planning only"
@@ -281,4 +341,104 @@ function Row({ k, v }: { k: string; v: string }) {
       <div>{v}</div>
     </div>
   );
+}
+
+function LevelMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-border bg-bg p-2">
+      <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
+        {label}
+      </div>
+      <div className="mt-1 font-mono text-ink">{value}</div>
+    </div>
+  );
+}
+
+function PaperPracticeHandoff({ plan }: { plan: Plan }) {
+  const [copied, setCopied] = useState(false);
+  const packet = buildPracticePacket(plan);
+
+  async function copyPacket() {
+    await navigator.clipboard.writeText(JSON.stringify(packet, null, 2));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <LevelMetric label="Symbol" value={packet.symbol} />
+        <LevelMetric label="Direction" value={packet.direction} />
+        <LevelMetric label="Entry" value={packet.entry} />
+        <LevelMetric label="Invalidation" value={packet.stop} />
+      </div>
+      <div className="rounded border border-border bg-bg p-3 text-xs leading-relaxed text-muted">
+        This packet is for paper-practice review only. Planifier does not send it
+        to FoxClaw, place trades, or approve entries.
+      </div>
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
+          Before paper entry
+        </div>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+          {packet.checklist.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <button
+        type="button"
+        onClick={copyPacket}
+        className="rounded border border-accent/60 bg-accent/10 px-3 py-2 text-xs font-medium text-accent hover:border-accent"
+      >
+        {copied ? "Copied packet" : "Copy practice packet"}
+      </button>
+    </div>
+  );
+}
+
+function buildPracticePacket(plan: Plan) {
+  const chartSave = plan.chartSave;
+
+  return {
+    source: "planifier",
+    mode: "paper_practice_review_only",
+    symbol: chartSave?.symbol ?? "unknown",
+    timeframe: chartSave?.timeframe ?? "unknown",
+    direction: chartSave?.direction ?? plan.examplePlan.direction,
+    entry: chartSave ? formatPlanLevel(chartSave.entry) : plan.examplePlan.entryTrigger,
+    stop: chartSave ? formatPlanLevel(chartSave.stop) : plan.invalidation.condition,
+    target: chartSave
+      ? formatPlanLevel(chartSave.target)
+      : plan.examplePlan.profitTargets.join(" / "),
+    riskReward:
+      chartSave?.riskReward === null || chartSave?.riskReward === undefined
+        ? "n/a"
+        : `${chartSave.riskReward.toFixed(2)}R`,
+    checklist: [
+      ...plan.decisionChecklist.slice(0, 4),
+      "Write the journal entry after outcome or invalidation.",
+    ],
+    guardrail:
+      "Educational paper-planning only. This packet is not an order, signal, or execution request.",
+  };
+}
+
+function formatPlanLevel(value: number): string {
+  if (Math.abs(value) >= 1000) {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+  if (Math.abs(value) >= 1) return value.toFixed(2);
+  return value.toFixed(6);
+}
+
+function formatSavedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }

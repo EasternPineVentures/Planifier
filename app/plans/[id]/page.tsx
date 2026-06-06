@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Nav from "@/components/Nav";
 import PlanView from "@/components/PlanView";
 import JournalForm from "@/components/JournalForm";
+import DeletePlanButton from "@/components/DeletePlanButton";
 import { requireUserId } from "@/lib/db/users";
 import { db, schema } from "@/lib/db/client";
 import { and, eq, asc } from "drizzle-orm";
@@ -37,13 +38,28 @@ export default async function PlanDetail({ params }: Props) {
   const strategyRules = plan.strategyNotes?.rules ?? [];
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-4 px-4 py-6">
+    <main className="epv-shell flex min-h-screen flex-col gap-5 !max-w-5xl">
       <Nav />
-      <header className="surface-panel flex flex-wrap items-baseline gap-3 rounded border border-border bg-panel p-4">
-        <h2 className="font-mono text-lg">{row.ticker}</h2>
+      <header className="epv-panel-strong flex flex-wrap items-baseline gap-3 p-5">
+        <div>
+          <p className="epv-kicker">Saved plan</p>
+          <h1 className="font-display mt-2 text-3xl font-semibold leading-none text-ink">
+            {row.ticker}
+          </h1>
+        </div>
         <span className="text-xs text-muted">
           {row.timeframe} / {row.holdingPeriod} / risk {row.riskPercent}%
         </span>
+        {plan.chartSave && (
+          <a
+            href={`/chart?pair=${encodeURIComponent(
+              plan.chartSave.symbol
+            )}&timeframe=${encodeURIComponent(plan.chartSave.timeframe)}`}
+            className="epv-button-ghost min-h-9 px-3 text-[11px]"
+          >
+            Open Chart
+          </a>
+        )}
         <span className="ml-auto text-[11px] text-muted">
           {new Date(row.createdAt).toLocaleString()}
         </span>
@@ -51,7 +67,7 @@ export default async function PlanDetail({ params }: Props) {
 
       <PlanView plan={plan} />
 
-      <section className="surface-panel rounded border border-border bg-panel p-3">
+      <section className="epv-panel p-4">
         <h3 className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted">
           Journal entries
         </h3>
@@ -91,6 +107,20 @@ export default async function PlanDetail({ params }: Props) {
         )}
         <div className="mt-4 border-t border-border pt-3">
           <JournalForm planId={id} strategyRules={strategyRules} />
+        </div>
+      </section>
+
+      <section className="rounded border border-danger/30 bg-danger/5 p-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-mono text-[11px] uppercase tracking-wider text-danger">
+              Plan cleanup
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              Delete only when this saved plan is no longer useful for review.
+            </p>
+          </div>
+          <DeletePlanButton planId={id} />
         </div>
       </section>
     </main>

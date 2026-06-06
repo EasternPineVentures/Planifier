@@ -92,4 +92,28 @@ describe("PlanSchema strategyNotes.learningExample", () => {
       "Invalidation"
     );
   });
+
+  it("accepts optional chartSave metadata for Learning Chart saves", () => {
+    const parsed = PlanSchema.parse({
+      ...basePlan,
+      chartSave: {
+        origin: "learning_chart_v1",
+        symbol: "BTC/USD",
+        timeframe: "4h",
+        entry: 64000,
+        stop: 62000,
+        target: 68000,
+        riskReward: 2,
+        direction: "long",
+        currentPrice: 64100,
+        selectedCandleTime: "Jun 5, 2026 1:00 PM",
+        savedAt: "2026-06-05T17:00:00.000Z",
+        tradingViewUrl:
+          "https://www.tradingview.com/chart/?symbol=KRAKEN%3ABTCUSD&interval=240",
+      },
+    });
+
+    expect(parsed.chartSave?.symbol).toBe("BTC/USD");
+    expect(parsed.chartSave?.direction).toBe("long");
+  });
 });

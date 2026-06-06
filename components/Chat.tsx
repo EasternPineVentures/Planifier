@@ -1,15 +1,15 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   MIN_CHART_NOTE_CHARS,
   validateInputs,
   type MissingField,
   type PlanInputs,
 } from "@/lib/validation";
-import PlanView from "@/components/PlanView";
 import ScenarioChart from "@/components/ScenarioChart";
-import ChartWorkspace from "@/components/ChartWorkspace";
+import LearningChartLoader from "@/components/chart/LearningChartLoader";
 import type { Plan } from "@/lib/plan/schema";
 import {
   appendChartContextPrompt,
@@ -25,6 +25,16 @@ import {
   getBeginnerCoachMessage,
   normalizeBeginnerExplorePair,
 } from "@/lib/plan/beginnerCoach";
+import {
+  getMarketPairOption,
+  MARKET_PAIR_GROUPS,
+  QUICK_START_PAIR_SYMBOLS,
+} from "@/lib/plan/marketPairs";
+import {
+  PLAN_DRAFT_STORAGE_KEY,
+  type StoredPlanDraft,
+} from "@/lib/plan/draftStorage";
+import { CHART_BASICS } from "@/lib/plan/chartBasics";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type LearningMode = "standard" | "beginner";
@@ -102,7 +112,6 @@ const CHART_EXAMPLES = [
 
 const EXPLORE_TIMEFRAMES = ["15m", "1H", "4H", "1D"] as const;
 const EXPLORE_STYLES = ["Unsure", "Scalp", "Day", "Swing", "Position"] as const;
-const QUICK_START_PAIRS = ["BTC/USD", "ETH/USD", "SPY", "NVDA"] as const;
 const LEARNING_MODES: Array<{ value: LearningMode; label: string }> = [
   { value: "beginner", label: "Still learning" },
   { value: "standard", label: "Standard" },
@@ -143,6 +152,7 @@ const BEGINNER_CONTEXT_EXAMPLE =
   "Example: Trend is making higher lows. Key level is prior 4H support. Price is pulling back into that level now. Wrong if price closes below the support zone.";
 
 export default function Chat() {
+  const router = useRouter();
   const [inputs, setInputs] = useState<PlanInputs>({
     ticker: "",
     timeframe: "",
@@ -183,7 +193,6 @@ export default function Chat() {
   const fileRef = useRef<HTMLInputElement>(null);
   const buildRef = useRef<HTMLElement | null>(null);
   const startHereRef = useRef<HTMLElement | null>(null);
-  const planResultRef = useRef<HTMLDivElement | null>(null);
 
   const missing = useMemo(
     () => validateInputs({ ...inputs, hasImage: !!imageDataUrl }),
@@ -219,6 +228,14 @@ export default function Chat() {
       riskPercent: FIXED_RISK_PERCENT,
     }));
     setPlanError(null);
+  }
+
+  function pickExplorePair(pair: string) {
+    setExplorePair(normalizeBeginnerExplorePair(pair));
+    setExploreResult(null);
+    setSelectedAngleLabel(null);
+    setHistoricalScenario(null);
+    setHistoricalError(null);
   }
 
   async function handleFile(file: File) {
@@ -518,6 +535,30 @@ export default function Chat() {
     }
   }
 
+  function openFinishedDraft(result: { id: string; plan: Plan }) {
+    const storedDraft: StoredPlanDraft = {
+      id: result.id,
+      plan: result.plan,
+      createdAt: new Date().toISOString(),
+      source: result.id ? "saved" : "unsaved",
+    };
+
+    try {
+      window.sessionStorage.setItem(
+        PLAN_DRAFT_STORAGE_KEY,
+        JSON.stringify(storedDraft)
+      );
+    } catch {
+      setPlanError(
+        "The plan was built, but the browser could not open the separate draft page."
+      );
+      return;
+    }
+
+    setStructuredPlan(result);
+    router.push("/plan/draft");
+  }
+
   async function buildStructuredPlan() {
     if (!ready || planBusy) return;
     setPlanBusy(true);
@@ -541,13 +582,7 @@ export default function Chat() {
 
       if (res.ok) {
         const ok = data as { id: string; plan: Plan };
-        setStructuredPlan(ok);
-        window.setTimeout(() => {
-          planResultRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }, 0);
+        openFinishedDraft(ok);
         return;
       }
 
@@ -557,13 +592,8 @@ export default function Chat() {
         plan?: Plan;
       };
       if (res.status === 503 && errBody.plan) {
-        setStructuredPlan({ id: "", plan: errBody.plan });
-        window.setTimeout(() => {
-          planResultRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }, 0);
+        openFinishedDraft({ id: "", plan: errBody.plan });
+        return;
       }
       setPlanError(
         errBody.message ??
@@ -628,7 +658,7 @@ export default function Chat() {
             exploreBusy={exploreBusy}
             planBusy={planBusy}
             missingLabels={missingLabels}
-            onPairPick={setExplorePair}
+            onPairPick={pickExplorePair}
             onTimeframePick={setExploreTimeframe}
             onStylePick={setExploreStyle}
             onFindAngles={exploreStartingAngles}
@@ -657,12 +687,11 @@ export default function Chat() {
         )}
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <main className="space-y-4">
-          <ChartWorkspace
-            pair={explorePair}
-            timeframe={exploreTimeframe}
-            style={exploreStyle}
+          <LearningChartLoader
+            initialPair={explorePair}
+            initialTimeframe={exploreTimeframe}
             onUseChartContext={applyChartWorkspaceNote}
           />
 
@@ -779,32 +808,6 @@ export default function Chat() {
             </section>
           )}
 
-          {structuredPlan && (
-            <section
-              ref={planResultRef}
-              className="surface-panel rounded border border-accent/40 bg-panel p-4"
-            >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
-                    Finished draft
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-ink">
-                    Read the plan before practicing it.
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setStructuredPlan(null)}
-                  className="rounded border border-border px-3 py-2 text-xs text-muted hover:text-ink"
-                >
-                  Clear draft
-                </button>
-              </div>
-              <PlanView plan={structuredPlan.plan} planId={structuredPlan.id} />
-            </section>
-          )}
-
           <section className="surface-panel rounded border border-border bg-panel p-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div>
@@ -886,7 +889,6 @@ export default function Chat() {
               selectedAngleLabel={selectedAngleLabel}
               ready={ready}
               hasPlan={!!structuredPlan}
-              planId={structuredPlan?.id ?? ""}
               planBusy={planBusy}
               exploreBusy={exploreBusy}
               onStart={() =>
@@ -903,12 +905,7 @@ export default function Chat() {
                 })
               }
               onBuild={buildStructuredPlan}
-              onReviewPlan={() =>
-                planResultRef.current?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                })
-              }
+              onReviewPlan={() => router.push("/plan/draft")}
             />
           )}
 
@@ -1072,14 +1069,6 @@ export default function Chat() {
             </button>
           </section>
 
-          <ScenarioChart
-            historicalScenario={historicalScenario}
-            historicalBusy={historicalBusy}
-            historicalError={historicalError}
-            onRequestHistorical={generateHistoricalScenarioMap}
-            onUseScenario={applyScenarioNote}
-          />
-
           <section className="surface-panel rounded border border-border bg-panel p-4">
             <details>
               <summary className="cursor-pointer list-none font-mono text-xs uppercase tracking-wider text-muted">
@@ -1102,7 +1091,59 @@ export default function Chat() {
           </section>
         </aside>
       </div>
+
+      <ScenarioChart
+        historicalScenario={historicalScenario}
+        historicalBusy={historicalBusy}
+        historicalError={historicalError}
+        onRequestHistorical={generateHistoricalScenarioMap}
+        onUseScenario={applyScenarioNote}
+      />
     </div>
+  );
+}
+
+function ChartBasicsPanel() {
+  return (
+    <section className="surface-panel rounded border border-border bg-panel p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
+            Charting basics
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-ink">
+            What to look for before an idea matters.
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">
+            Read the chart in the same order every time. The goal is not to be
+            fancy; it is to know what would confirm the idea and what would
+            prove it wrong.
+          </p>
+        </div>
+        <span className="shrink-0 rounded border border-border px-2 py-1 font-mono text-[10px] uppercase text-muted">
+          beginner scan
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {CHART_BASICS.map((step) => (
+          <article key={step.id} className="rounded border border-border bg-bg p-3">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+              {step.label}
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-ink">
+              {step.lookFor}
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              {step.whyItMatters}
+            </p>
+            <div className="mt-3 rounded border border-accent/30 bg-accent/5 p-2 text-xs leading-relaxed text-muted">
+              {step.beginnerRule}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1137,6 +1178,7 @@ function StartHerePanel({
   onBuild: () => void;
   onReviewFields: () => void;
 }) {
+  const selectedMarket = getMarketPairOption(pair);
   const status = hasPlan
     ? "Plan built. Read it, then journal what actually happened."
     : ready
@@ -1162,13 +1204,35 @@ function StartHerePanel({
         </span>
       </div>
 
-      <div className="mt-3 grid gap-2 md:grid-cols-3">
+      <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div>
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-muted">
-            Market
-          </div>
-          <div className="grid grid-cols-2 gap-1">
-            {QUICK_START_PAIRS.map((option) => (
+          <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted">
+            Market list
+          </label>
+          <select
+            value={pair}
+            onChange={(event) => onPairPick(event.target.value)}
+            className="w-full rounded border border-border bg-bg px-3 py-2 text-sm text-ink"
+          >
+            {!selectedMarket && pair.trim() && (
+              <option value={pair}>Custom - {pair}</option>
+            )}
+            {MARKET_PAIR_GROUPS.map((group) => (
+              <optgroup key={group.id} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.symbol} value={option.symbol}>
+                    {option.symbol} - {option.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <p className="mt-2 min-h-10 rounded border border-border bg-bg p-2 text-xs leading-relaxed text-muted">
+            {selectedMarket?.plainEnglish ??
+              "Pick a chart to study. The first version uses practice chart patterns while the workflow stays the same."}
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-1">
+            {QUICK_START_PAIR_SYMBOLS.map((option) => (
               <button
                 key={option}
                 type="button"
@@ -1340,7 +1404,6 @@ function BeginnerWalkthrough({
   selectedAngleLabel,
   ready,
   hasPlan,
-  planId,
   planBusy,
   exploreBusy,
   onStart,
@@ -1356,7 +1419,6 @@ function BeginnerWalkthrough({
   selectedAngleLabel: string | null;
   ready: boolean;
   hasPlan: boolean;
-  planId: string;
   planBusy: boolean;
   exploreBusy: boolean;
   onStart: () => void;
@@ -1500,17 +1562,6 @@ function BeginnerWalkthrough({
       );
     }
 
-    if (planId) {
-      return (
-        <a
-          href={`/plans/${planId}`}
-          className="block w-full rounded border border-accent/50 px-3 py-2 text-center text-xs text-accent"
-        >
-          Open plan and journal
-        </a>
-      );
-    }
-
     return (
       <button
         type="button"
@@ -1518,7 +1569,7 @@ function BeginnerWalkthrough({
         disabled={!hasPlan}
         className="w-full rounded border border-border px-3 py-2 text-left text-xs text-ink hover:border-muted disabled:opacity-40"
       >
-        Review the plan
+        Open finished draft
       </button>
     );
   }

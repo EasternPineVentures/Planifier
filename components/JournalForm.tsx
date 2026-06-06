@@ -114,7 +114,8 @@ export default function JournalForm({
       </div>
 
       <div className="rounded border border-border bg-bg p-3 text-xs text-muted">
-        This is where the learning compounds. Be honest. The point is not to look smart — the point is to catch the pattern before it costs you again.
+        This is where the learning compounds. Be honest. The point is not to
+        look smart - the point is to catch the pattern before it costs you again.
       </div>
 
       <div className="rounded border border-accent/50 bg-accent/10 p-3">
@@ -254,7 +255,7 @@ function Select({
       >
         {options.map((o) => (
           <option key={o} value={o}>
-            {o || "—"}
+            {o || "-"}
           </option>
         ))}
       </select>

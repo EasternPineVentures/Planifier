@@ -77,3 +77,26 @@ export async function POST(req: Request, ctx: Ctx) {
 
   return Response.json({ entry: row });
 }
+
+export async function DELETE(_req: Request, ctx: Ctx) {
+  let userId: string;
+  try {
+    userId = await requireUserId();
+  } catch {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  const { id } = await ctx.params;
+
+  const [plan] = await db
+    .select({ id: schema.plans.id })
+    .from(schema.plans)
+    .where(and(eq(schema.plans.id, id), eq(schema.plans.userId, userId)))
+    .limit(1);
+  if (!plan) return new Response("Not found", { status: 404 });
+
+  await db
+    .delete(schema.plans)
+    .where(and(eq(schema.plans.id, id), eq(schema.plans.userId, userId)));
+
+  return Response.json({ ok: true });
+}

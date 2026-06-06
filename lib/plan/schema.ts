@@ -60,7 +60,7 @@ export const PlanSchema = z.object({
     .array(z.string())
     .min(3)
     .describe(
-      "Bullet rules: 'Do not enter unless…', 'Avoid trade if…', 'Review after…', 'Check news…'."
+      "Bullet rules: 'Do not enter unless...', 'Avoid trade if...', 'Review after...', 'Check news...'."
     ),
   journalPrompt: z
     .string()
@@ -76,6 +76,25 @@ export const PlanSchema = z.object({
     .nullable()
     .describe(
       "Optional: biases visible in this setup (recency, false precision, etc.). Null if none."
+    ),
+  chartSave: z
+    .object({
+      origin: z.literal("learning_chart_v1"),
+      symbol: z.string(),
+      timeframe: z.string(),
+      entry: z.number(),
+      stop: z.number(),
+      target: z.number(),
+      riskReward: z.number().nullable(),
+      direction: z.enum(["long", "short", "stand-aside"]),
+      currentPrice: z.number().nullable(),
+      selectedCandleTime: z.string().nullable(),
+      savedAt: z.string(),
+      tradingViewUrl: z.string().url(),
+    })
+    .optional()
+    .describe(
+      "Optional deterministic metadata when a plan is saved from Learning Chart V1."
     ),
   strategyNotes: z.object({
     plainEnglish: z
