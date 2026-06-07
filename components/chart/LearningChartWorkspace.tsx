@@ -20,6 +20,7 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MarketImpactSnapshot } from "@/lib/market/impact";
 import type { Candle } from "@/lib/market/kraken";
 import {
   detectTrend,
@@ -105,6 +106,12 @@ export default function LearningChartWorkspace({
     "loading" | "ready" | "error"
   >("loading");
   const [overviewError, setOverviewError] = useState<string | null>(null);
+  const [marketImpact, setMarketImpact] =
+    useState<MarketImpactSnapshot | null>(null);
+  const [impactState, setImpactState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [impactError, setImpactError] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
     "loading"
   );
@@ -284,6 +291,41 @@ export default function LearningChartWorkspace({
     [timeframe]
   );
 
+  const loadMarketImpact = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!silent) setImpactState("loading");
+      setImpactError(null);
+
+      try {
+        const params = new URLSearchParams({ pair });
+        const response = await fetch(`/api/market/impact?${params}`, {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as
+          | MarketImpactSnapshot
+          | { error?: string; message?: string };
+
+        if (!response.ok || !("events" in payload)) {
+          const problem = payload as { error?: string; message?: string };
+          throw new Error(
+            problem.message ?? problem.error ?? "Market impact was not available."
+          );
+        }
+
+        setMarketImpact(payload);
+        setImpactState("ready");
+      } catch (caught) {
+        setImpactState("error");
+        setImpactError(
+          caught instanceof Error
+            ? caught.message
+            : "Market impact could not load."
+        );
+      }
+    },
+    [pair]
+  );
+
   useEffect(() => {
     setCandles([]);
     setGeneratedAt(null);
@@ -329,6 +371,14 @@ export default function LearningChartWorkspace({
     }, 60_000);
     return () => window.clearInterval(id);
   }, [loadMarketOverview]);
+
+  useEffect(() => {
+    void loadMarketImpact();
+    const id = window.setInterval(() => {
+      void loadMarketImpact({ silent: true });
+    }, 300_000);
+    return () => window.clearInterval(id);
+  }, [loadMarketImpact]);
 
   function changePracticeDirection(direction: PracticeDirection) {
     setPracticeDirection(direction);
@@ -515,6 +565,11 @@ export default function LearningChartWorkspace({
                 onLevelChange={updateLevel}
                 onUseSelectedClose={useSelectedCloseFor}
                 onSavePlan={() => void saveChartPlan()}
+              />
+              <MarketImpactPanel
+                snapshot={marketImpact}
+                state={impactState}
+                error={impactError}
               />
               <MarketPulsePanel
                 overview={marketOverview}
@@ -703,6 +758,144 @@ function ChartControls({
   );
 }
 
+function MarketImpactPanel({
+  snapshot,
+  state,
+  error,
+}: {
+  snapshot: MarketImpactSnapshot | null;
+  state: "loading" | "ready" | "error";
+  error: string | null;
+}) {
+  const events = snapshot?.events.slice(0, 3) ?? [];
+  const headlines = snapshot?.headlines.slice(0, 2) ?? [];
+  const statusLabel =
+    snapshot?.sourceStatus === "live"
+      ? "calendar live"
+      : snapshot?.sourceStatus === "error"
+      ? "fallback"
+      : "setup needed";
+
+  return (
+    <section className="rounded border border-border bg-bg p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+            Impact watch
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            Calendar and headline context for possible volatility. Use it to
+            know when the chart may be noisy.
+          </p>
+        </div>
+        <span className="shrink-0 rounded border border-border px-2 py-1 font-mono text-[9px] uppercase text-muted">
+          {statusLabel}
+        </span>
+      </div>
+
+      {state === "loading" && !snapshot && (
+        <div className="mt-3 space-y-2">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div
+              key={index}
+              className="h-[82px] animate-pulse rounded border border-border bg-panel"
+            />
+          ))}
+        </div>
+      )}
+
+      {state === "error" && (
+        <p className="mt-3 rounded border border-danger/45 bg-danger/10 p-3 text-xs text-danger">
+          {error ?? "Market impact could not load."}
+        </p>
+      )}
+
+      {events.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {events.map((event) => (
+            <div key={event.id} className="rounded border border-border bg-panel p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase text-muted">
+                    <span className={importanceClass(event.importance)}>
+                      {event.importance}
+                    </span>
+                    <span>{formatImpactTime(event)}</span>
+                  </div>
+                  <div className="mt-2 text-sm font-semibold leading-snug text-ink">
+                    {event.sourceUrl ? (
+                      <a
+                        href={event.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:text-accent"
+                      >
+                        {event.title}
+                      </a>
+                    ) : (
+                      event.title
+                    )}
+                  </div>
+                  <div className="mt-1 text-[11px] text-muted">
+                    {event.country} / {event.category}
+                  </div>
+                </div>
+                <span className="shrink-0 rounded border border-border px-2 py-1 font-mono text-[9px] uppercase text-muted">
+                  {impactAreaLabel(event.impactArea)}
+                </span>
+              </div>
+
+              {(event.forecast || event.previous || event.actual) && (
+                <div className="mt-2 grid grid-cols-3 gap-1 font-mono text-[9px] uppercase text-muted">
+                  <MiniMetric label="Prev" value={event.previous ?? "--"} />
+                  <MiniMetric label="Fcst" value={event.forecast ?? "--"} />
+                  <MiniMetric label="Actual" value={event.actual ?? "--"} />
+                </div>
+              )}
+
+              <p className="mt-2 text-xs leading-relaxed text-muted">
+                {event.beginnerNote}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {headlines.length > 0 && (
+        <div className="mt-3 border-t border-border pt-3">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
+            Headlines to explain candles
+          </div>
+          <div className="mt-2 space-y-2">
+            {headlines.map((headline) => (
+              <a
+                key={headline.url}
+                href={headline.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded border border-border bg-panel p-2 hover:border-muted"
+              >
+                <div className="text-xs font-medium leading-snug text-ink">
+                  {headline.title}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase text-muted">
+                  <span>{headline.source}</span>
+                  <span>{impactAreaLabel(headline.impactArea)}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-3 rounded border border-border bg-panel p-2 text-[11px] leading-relaxed text-muted">
+        This panel explains possible volatility. It does not confirm a long or
+        short by itself.
+      </p>
+    </section>
+  );
+}
+
 function MarketPulsePanel({
   overview,
   state,
@@ -838,6 +1031,15 @@ function MarketPulsePanel({
 function PulseStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-border bg-panel px-3 py-2">
+      <div>{label}</div>
+      <div className="mt-1 truncate text-ink">{value}</div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-border bg-bg px-2 py-1">
       <div>{label}</div>
       <div className="mt-1 truncate text-ink">{value}</div>
     </div>
@@ -2374,6 +2576,47 @@ function formatSigned(value: number): string {
 
 function formatSignedPercent(value: number): string {
   return `${formatSigned(value)}%`;
+}
+
+function formatImpactTime(event: MarketImpactSnapshot["events"][number]): string {
+  if (event.startsAt) {
+    return format(new Date(event.startsAt), "MMM d, h:mm a");
+  }
+  return event.timeLabel ?? "watch";
+}
+
+function importanceClass(
+  importance: MarketImpactSnapshot["events"][number]["importance"]
+): string {
+  const base = "rounded border px-2 py-1";
+  if (importance === "high") {
+    return `${base} border-danger/50 bg-danger/10 text-danger`;
+  }
+  if (importance === "medium") {
+    return `${base} border-amber/50 bg-amber/10 text-accent`;
+  }
+  return `${base} border-border bg-bg text-muted`;
+}
+
+function impactAreaLabel(
+  area: MarketImpactSnapshot["events"][number]["impactArea"]
+): string {
+  switch (area) {
+    case "rates":
+      return "Rates";
+    case "inflation":
+      return "Inflation";
+    case "labor":
+      return "Jobs";
+    case "growth":
+      return "Growth";
+    case "liquidity":
+      return "Liquidity";
+    case "regulation":
+      return "Rules";
+    case "risk":
+      return "Risk";
+  }
 }
 
 function toLineData(
