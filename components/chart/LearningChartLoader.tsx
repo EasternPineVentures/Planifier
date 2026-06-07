@@ -19,7 +19,7 @@ const LearningChartWorkspace = dynamic(
           </p>
         </div>
         <div className="p-4 sm:p-5">
-          <div className="h-[560px] animate-pulse border border-border bg-bg/80" />
+          <div className="h-[620px] animate-pulse border border-border bg-bg/80 lg:h-[760px]" />
         </div>
       </section>
     ),

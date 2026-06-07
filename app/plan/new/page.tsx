@@ -8,7 +8,7 @@ export default async function NewPlanPage() {
   if (!userId) redirect("/sign-in");
 
   return (
-    <main className="epv-shell flex min-h-screen flex-col gap-5">
+    <main className="epv-shell epv-rail-shell flex min-h-screen flex-col gap-5">
       <Nav />
       <SimplePlanBuilder />
       <footer className="border-t border-border pt-3 text-[11px] leading-relaxed text-muted">

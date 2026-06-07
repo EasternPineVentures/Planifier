@@ -35,7 +35,7 @@ const ACTIONS = [
 
 export default function Page() {
   return (
-    <main className="epv-shell flex min-h-screen flex-col gap-5">
+    <main className="epv-shell epv-rail-shell flex min-h-screen flex-col gap-5">
       <Nav />
 
       <section className="epv-hero grid min-h-[560px] gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.7fr)] lg:p-12">

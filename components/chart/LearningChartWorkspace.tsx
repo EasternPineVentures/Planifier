@@ -56,14 +56,15 @@ const POLL_MS = 20_000;
 type LevelKey = keyof PracticeLevels;
 type PracticeDirection = "long" | "short";
 
-type EmaChartMarker = {
-  key: "ema20" | "ema50";
+type ChartOverlayMarker = {
+  key: "last" | "ema20" | "ema50";
   label: string;
   value: number;
   color: string;
   x: number;
   y: number;
   align: "left" | "right";
+  emphasis?: boolean;
 };
 
 type SaveState = {
@@ -127,13 +128,10 @@ export default function LearningChartWorkspace({
     () => candles.findIndex((candle) => candle.time === selectedTime),
     [candles, selectedTime]
   );
-  const selectedCandle =
-    selectedIndex >= 0 ? candles[selectedIndex] : candles.at(-1) ?? null;
+  const selectedCandle = selectedIndex >= 0 ? candles[selectedIndex] : null;
   const previousCandle =
     selectedIndex > 0
       ? candles[selectedIndex - 1]
-      : selectedIndex === -1
-      ? candles.at(-2) ?? null
       : null;
   const latestRead = useMemo(() => summarizeLatestPrice(candles), [candles]);
   const riskReward = useMemo(() => calculateRiskReward(levels), [levels]);
@@ -156,6 +154,10 @@ export default function LearningChartWorkspace({
   const indicatorRead = useMemo(
     () => buildTechnicalIndicatorRead(structureCandles),
     [structureCandles]
+  );
+  const marketBrief = useMemo(
+    () => buildMarketBrief(candles, latestRead, structureRead, indicatorRead),
+    [candles, indicatorRead, latestRead, structureRead]
   );
   const chartContextNote = useMemo(
     () =>
@@ -363,12 +365,12 @@ export default function LearningChartWorkspace({
   return (
     <section className="epv-panel-strong overflow-hidden">
       <div className="data-grid border-b border-border px-4 py-3 sm:px-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="epv-kicker">
               Learning Chart V1
             </p>
-            <h1 className="font-display mt-2 text-3xl font-semibold leading-none tracking-normal text-ink sm:text-4xl">
+            <h1 className="font-display mt-2 text-2xl font-semibold leading-none tracking-normal text-ink sm:text-3xl">
               Read the chart before you write the plan.
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
@@ -410,66 +412,76 @@ export default function LearningChartWorkspace({
             riskReward={riskReward}
             saveState={saveState}
             selectedCandle={selectedCandle}
+            latestCandle={latestRead.last}
             onLevelChange={updateLevel}
             onUseSelectedClose={useSelectedCloseFor}
             onSavePlan={() => void saveChartPlan()}
           />
 
-          <div className="overflow-hidden rounded border border-border bg-bg">
-            <ChartHeader
-              pair={selectedPair}
-              timeframe={timeframe}
-              latest={latestRead.last}
-              change={latestRead.change}
-              changePercent={latestRead.changePercent}
-            />
-            <LearningChartCanvas
-              candles={candles}
-              loadState={loadState}
-              selectedTime={selectedTime}
-              levels={levels}
-              indicatorSeries={indicatorSeries}
-              indicatorRead={indicatorRead}
-              onSelectTime={setSelectedTime}
-            />
-          </div>
-
-          {onUseChartContext && (
-            <div className="rounded border border-accent/45 bg-accent/10 p-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
-                    Send to plan builder
-                  </div>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">
-                    Load the real candle, level, and indicator read into the
-                    plan form. Edit the note before saving.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onUseChartContext(chartContextNote)}
-                  className="shrink-0 rounded bg-accent px-4 py-2 text-sm font-medium text-bg hover:bg-foxfire-gold"
-                >
-                  Load chart read into plan
-                </button>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
+            <div className="min-w-0 space-y-4">
+              <div className="overflow-hidden rounded border border-border bg-bg">
+                <ChartHeader
+                  pair={selectedPair}
+                  timeframe={timeframe}
+                  latest={latestRead.last}
+                  change={latestRead.change}
+                  changePercent={latestRead.changePercent}
+                />
+                <LearningChartCanvas
+                  candles={candles}
+                  loadState={loadState}
+                  selectedTime={selectedTime}
+                  levels={levels}
+                  indicatorSeries={indicatorSeries}
+                  indicatorRead={indicatorRead}
+                  onSelectTime={setSelectedTime}
+                />
               </div>
-            </div>
-          )}
 
-          <aside className="grid gap-4 xl:grid-cols-3">
-            <LearningPanel
-              pair={selectedPair}
-              timeframe={timeframe}
-              candle={selectedCandle}
-              hasCandles={candles.length > 0}
-              previous={previousCandle}
-              structure={structureRead}
-              beginnerMode={beginnerMode}
-            />
-            <IndicatorReadPanel read={indicatorRead} beginnerMode={beginnerMode} />
-            <ChartBasics beginnerMode={beginnerMode} />
-          </aside>
+              {onUseChartContext && (
+                <div className="rounded border border-accent/45 bg-accent/10 p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+                        Send to plan builder
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-muted">
+                        Load the candle read, level math, and indicator context
+                        into the plan form. Edit the note before saving.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onUseChartContext(chartContextNote)}
+                      className="shrink-0 rounded bg-accent px-4 py-2 text-sm font-medium text-bg hover:bg-foxfire-gold"
+                    >
+                      Load chart read into plan
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <aside className="grid content-start gap-4 lg:grid-cols-2 xl:grid-cols-1">
+              <MarketBriefPanel
+                pair={selectedPair}
+                timeframe={timeframe}
+                brief={marketBrief}
+              />
+              <LearningPanel
+                pair={selectedPair}
+                timeframe={timeframe}
+                candle={selectedCandle}
+                hasCandles={candles.length > 0}
+                previous={previousCandle}
+                structure={structureRead}
+                beginnerMode={beginnerMode}
+              />
+              <IndicatorReadPanel read={indicatorRead} beginnerMode={beginnerMode} />
+              <ChartBasics beginnerMode={beginnerMode} />
+            </aside>
+          </div>
         </div>
 
         <HistoricalExamples
@@ -539,10 +551,10 @@ function ChartControls({
 }) {
   return (
     <div className="rounded border border-border bg-bg p-3">
-      <div className="grid gap-3 xl:grid-cols-[minmax(180px,260px)_minmax(260px,1fr)_minmax(220px,260px)_auto] xl:items-end">
+      <div className="grid gap-3 xl:grid-cols-[minmax(220px,340px)_minmax(260px,1fr)_minmax(220px,260px)_auto] xl:items-end">
         <label className="block">
           <span className="block font-mono text-[10px] uppercase tracking-wider text-muted">
-            Pair
+            Market
           </span>
           <select
             value={pair}
@@ -555,6 +567,9 @@ function ChartControls({
               </option>
             ))}
           </select>
+          <span className="mt-1 block truncate text-[11px] text-muted">
+            {selectedPair.label}
+          </span>
         </label>
 
         <div>
@@ -567,7 +582,7 @@ function ChartControls({
                 key={item}
                 type="button"
                 onClick={() => onTimeframeChange(item)}
-                className={`rounded border px-3 py-2 font-mono text-[11px] uppercase ${
+                className={`min-w-12 rounded border px-3 py-2 font-mono text-[11px] uppercase ${
                   timeframe === item
                     ? "border-accent bg-accent/20 text-ink"
                     : "border-border bg-panel text-muted hover:border-muted hover:text-ink"
@@ -598,7 +613,7 @@ function ChartControls({
                     : "text-muted hover:text-ink"
                 }`}
               >
-                {direction}
+                {direction === "long" ? "Long" : "Short"}
               </button>
             ))}
           </div>
@@ -610,7 +625,7 @@ function ChartControls({
               Beginner
             </span>
             <span className="text-xs text-ink">
-              {beginnerMode ? "Explain reads" : "Compact reads"}
+              {beginnerMode ? "Still learning" : "Compact"}
             </span>
           </span>
           <input
@@ -699,19 +714,16 @@ function ChartHeader({
           </span>
         </div>
         {latest && (
-          <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] text-muted">
-            <span>
-              O <span className="text-ink">{formatPrice(latest.open)}</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] text-muted">
+            <span className="text-xs uppercase">
+              Close{" "}
+              <strong className="text-lg font-semibold text-ink">
+                {formatPrice(latest.close)}
+              </strong>
             </span>
-            <span>
-              H <span className="text-ink">{formatPrice(latest.high)}</span>
-            </span>
-            <span>
-              L <span className="text-ink">{formatPrice(latest.low)}</span>
-            </span>
-            <span>
-              C <span className="text-ink">{formatPrice(latest.close)}</span>
-            </span>
+            <span>O <span className="text-ink">{formatPrice(latest.open)}</span></span>
+            <span>H <span className="text-ink">{formatPrice(latest.high)}</span></span>
+            <span>L <span className="text-ink">{formatPrice(latest.low)}</span></span>
             <span className={positive ? "text-success" : "text-danger"}>
               {formatSigned(change)} / {formatSigned(changePercent)}%
             </span>
@@ -737,7 +749,7 @@ function LearningChartCanvas({
   levels: PracticeLevels;
   indicatorSeries: TechnicalIndicatorSeries;
   indicatorRead: TechnicalIndicatorRead;
-  onSelectTime: (time: number) => void;
+  onSelectTime: (time: number | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -747,8 +759,9 @@ function LearningChartCanvas({
   const volumeRef = useRef<ISeriesApi<"Histogram", Time> | null>(null);
   const priceLinesRef = useRef<Partial<Record<LevelKey, IPriceLine>>>({});
   const indicatorSeriesRef = useRef(indicatorSeries);
+  const candlesRef = useRef(candles);
   const selectRef = useRef(onSelectTime);
-  const [emaMarkers, setEmaMarkers] = useState<EmaChartMarker[]>([]);
+  const [chartMarkers, setChartMarkers] = useState<ChartOverlayMarker[]>([]);
 
   useEffect(() => {
     selectRef.current = onSelectTime;
@@ -758,15 +771,43 @@ function LearningChartCanvas({
     indicatorSeriesRef.current = indicatorSeries;
   }, [indicatorSeries]);
 
-  const updateEmaMarkers = useCallback(() => {
+  useEffect(() => {
+    candlesRef.current = candles;
+  }, [candles]);
+
+  const updateChartMarkers = useCallback(() => {
     const chart = chartRef.current;
+    const candleSeries = seriesRef.current;
     const ema20Series = ema20Ref.current;
     const ema50Series = ema50Ref.current;
     const container = containerRef.current;
-    if (!chart || !ema20Series || !ema50Series || !container) {
-      setEmaMarkers([]);
+    if (!chart || !candleSeries || !ema20Series || !ema50Series || !container) {
+      setChartMarkers([]);
       return;
     }
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const latestVisible = findLatestVisibleCandle(candlesRef.current, chart, width);
+    const lastCandle = candlesRef.current.at(-1) ?? null;
+    const priceMarker =
+      latestVisible && lastCandle
+        ? buildOverlayMarker({
+            key: "last",
+            label:
+              latestVisible.candle.time === lastCandle.time ? "Last" : "Close",
+            value: latestVisible.candle.close,
+            color:
+              latestVisible.candle.close >= latestVisible.candle.open
+                ? "#22C55E"
+                : "#EF4444",
+            x: latestVisible.x,
+            y: candleSeries.priceToCoordinate(latestVisible.candle.close),
+            width,
+            height,
+            emphasis: true,
+          })
+        : null;
 
     const markerInputs = [
       {
@@ -774,37 +815,44 @@ function LearningChartCanvas({
         label: "EMA20",
         color: "#D6A84F",
         series: ema20Series,
-        point: indicatorSeriesRef.current.ema20.at(-1),
+        point: findLatestVisiblePoint(
+          indicatorSeriesRef.current.ema20,
+          chart,
+          width
+        ),
       },
       {
         key: "ema50" as const,
         label: "EMA50",
         color: "#6F8F72",
         series: ema50Series,
-        point: indicatorSeriesRef.current.ema50.at(-1),
+        point: findLatestVisiblePoint(
+          indicatorSeriesRef.current.ema50,
+          chart,
+          width
+        ),
       },
     ];
 
-    const width = container.clientWidth;
-    const nextMarkers = markerInputs.flatMap((item): EmaChartMarker[] => {
+    const indicatorMarkers = markerInputs.flatMap((item): ChartOverlayMarker[] => {
       if (!item.point) return [];
-      const x = chart.timeScale().timeToCoordinate(item.point.time as UTCTimestamp);
-      const y = item.series.priceToCoordinate(item.point.value);
-      if (x === null || y === null) return [];
-      return [
-        {
-          key: item.key,
-          label: item.label,
-          value: item.point.value,
-          color: item.color,
-          x,
-          y,
-          align: x > width - 150 ? "left" : "right",
-        },
-      ];
+      const marker = buildOverlayMarker({
+        key: item.key,
+        label: item.label,
+        value: item.point.value,
+        color: item.color,
+        x: item.point.x,
+        y: item.series.priceToCoordinate(item.point.value),
+        width,
+        height,
+      });
+      return marker ? [marker] : [];
     });
 
-    setEmaMarkers(nextMarkers);
+    setChartMarkers([
+      ...(priceMarker ? [priceMarker] : []),
+      ...indicatorMarkers,
+    ]);
   }, []);
 
   useEffect(() => {
@@ -813,7 +861,7 @@ function LearningChartCanvas({
 
     const chart = createChart(container, {
       width: container.clientWidth,
-      height: 700,
+      height: 760,
       autoSize: false,
       layout: {
         background: { type: ColorType.Solid, color: "#050807" },
@@ -893,7 +941,7 @@ function LearningChartCanvas({
         selectRef.current(params.time);
       }
     };
-    const handleVisibleRangeChange = () => updateEmaMarkers();
+    const handleVisibleRangeChange = () => updateChartMarkers();
     chart.subscribeCrosshairMove(handleCrosshairMove);
     chart.timeScale().subscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
 
@@ -901,15 +949,15 @@ function LearningChartCanvas({
       if (!entry) return;
       const nextHeight =
         entry.contentRect.width < 640
-          ? 500
+          ? 540
           : entry.contentRect.width < 960
-          ? 620
-          : 700;
+          ? 660
+          : 760;
       chart.applyOptions({
         width: Math.floor(entry.contentRect.width),
         height: nextHeight,
       });
-      window.requestAnimationFrame(updateEmaMarkers);
+      window.requestAnimationFrame(updateChartMarkers);
     });
     observer.observe(container);
 
@@ -925,7 +973,7 @@ function LearningChartCanvas({
       volumeRef.current = null;
       priceLinesRef.current = {};
     };
-  }, [updateEmaMarkers]);
+  }, [updateChartMarkers]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -943,8 +991,8 @@ function LearningChartCanvas({
     series.setData(data);
     series.update(data[data.length - 1]);
     chart.timeScale().fitContent();
-    window.requestAnimationFrame(updateEmaMarkers);
-  }, [candles, updateEmaMarkers]);
+    window.requestAnimationFrame(updateChartMarkers);
+  }, [candles, updateChartMarkers]);
 
   useEffect(() => {
     const ema20 = ema20Ref.current;
@@ -964,8 +1012,8 @@ function LearningChartCanvas({
             : "rgba(239, 68, 68, 0.24)",
       }))
     );
-    window.requestAnimationFrame(updateEmaMarkers);
-  }, [candles, indicatorSeries, updateEmaMarkers]);
+    window.requestAnimationFrame(updateChartMarkers);
+  }, [candles, indicatorSeries, updateChartMarkers]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -999,8 +1047,8 @@ function LearningChartCanvas({
 
   return (
     <div className="relative">
-      <div ref={containerRef} className="h-[500px] w-full sm:h-[620px] lg:h-[700px]" />
-      <EmaChartMarkers markers={emaMarkers} />
+      <div ref={containerRef} className="h-[540px] w-full sm:h-[660px] lg:h-[760px]" />
+      <ChartOverlayMarkers markers={chartMarkers} />
       <IndicatorLegend read={indicatorRead} />
       {candles.length === 0 && (
         <div className="absolute inset-0 z-20 grid place-items-center bg-bg/86 p-4 text-center">
@@ -1029,7 +1077,7 @@ function IndicatorLegend({ read }: { read: TechnicalIndicatorRead }) {
   );
 }
 
-function EmaChartMarkers({ markers }: { markers: EmaChartMarker[] }) {
+function ChartOverlayMarkers({ markers }: { markers: ChartOverlayMarker[] }) {
   if (markers.length === 0) return null;
 
   return (
@@ -1048,11 +1096,15 @@ function EmaChartMarkers({ markers }: { markers: EmaChartMarker[] }) {
           }}
         >
           <span
-            className="h-3 w-3 rounded-full border border-bg shadow-[0_0_0_2px_rgba(5,8,7,0.7)]"
+            className={`rounded-full border border-bg shadow-[0_0_0_2px_rgba(5,8,7,0.7)] ${
+              marker.emphasis ? "h-3.5 w-3.5" : "h-3 w-3"
+            }`}
             style={{ backgroundColor: marker.color }}
           />
           <span
-            className="rounded border bg-bg/95 px-2 py-1 font-mono text-[10px] uppercase shadow-lg"
+            className={`rounded border bg-bg/95 px-2 py-1 font-mono uppercase shadow-lg ${
+              marker.emphasis ? "text-[11px]" : "text-[10px]"
+            }`}
             style={{ borderColor: marker.color, color: marker.color }}
           >
             {marker.label} {formatPrice(marker.value)}
@@ -1061,6 +1113,70 @@ function EmaChartMarkers({ markers }: { markers: EmaChartMarker[] }) {
       ))}
     </div>
   );
+}
+
+function findLatestVisibleCandle(
+  candles: Candle[],
+  chart: IChartApi,
+  width: number
+): { candle: Candle; x: number } | null {
+  for (let index = candles.length - 1; index >= 0; index -= 1) {
+    const candle = candles[index];
+    const x = chart.timeScale().timeToCoordinate(candle.time as UTCTimestamp);
+    if (isVisibleX(x, width)) return { candle, x };
+  }
+  return null;
+}
+
+function findLatestVisiblePoint(
+  points: TechnicalIndicatorSeries["ema20"],
+  chart: IChartApi,
+  width: number
+): (TechnicalIndicatorSeries["ema20"][number] & { x: number }) | null {
+  for (let index = points.length - 1; index >= 0; index -= 1) {
+    const point = points[index];
+    const x = chart.timeScale().timeToCoordinate(point.time as UTCTimestamp);
+    if (isVisibleX(x, width)) return { ...point, x };
+  }
+  return null;
+}
+
+function buildOverlayMarker({
+  key,
+  label,
+  value,
+  color,
+  x,
+  y,
+  width,
+  height,
+  emphasis = false,
+}: {
+  key: ChartOverlayMarker["key"];
+  label: string;
+  value: number;
+  color: string;
+  x: number;
+  y: number | null;
+  width: number;
+  height: number;
+  emphasis?: boolean;
+}): ChartOverlayMarker | null {
+  if (y === null || y < 8 || y > height - 8) return null;
+  return {
+    key,
+    label,
+    value,
+    color,
+    x,
+    y,
+    align: x > width - 150 ? "left" : "right",
+    emphasis,
+  };
+}
+
+function isVisibleX(value: number | null, width: number): value is number {
+  return value !== null && value >= 0 && value <= width;
 }
 
 function IndicatorReadPanel({
@@ -1110,9 +1226,29 @@ function IndicatorReadPanel({
       </div>
 
       {beginnerMode && (
-        <p className="mt-4 rounded border border-amber/35 bg-amber/10 p-3 text-xs leading-relaxed text-muted">
-          {read.planQuestion}
-        </p>
+        <div className="mt-4 rounded border border-amber/35 bg-amber/10 p-3 text-xs leading-relaxed text-muted">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+            Still learning
+          </div>
+          <div className="mt-3 space-y-3">
+            <ReadBlock
+              label="EMA"
+              value="A moving average of recent closes. It helps describe trend direction and pullback context."
+            />
+            <ReadBlock
+              label="RSI"
+              value="A momentum gauge from 0 to 100. It can show pressure or stretch, but it is not a buy or sell button."
+            />
+            <ReadBlock
+              label="ATR"
+              value="An average movement range. It helps judge whether a stop is too tight for normal noise."
+            />
+            <ReadBlock
+              label="Question"
+              value={read.planQuestion}
+            />
+          </div>
+        </div>
       )}
     </section>
   );
@@ -1124,6 +1260,7 @@ function PlanLevelControls({
   riskReward,
   saveState,
   selectedCandle,
+  latestCandle,
   onLevelChange,
   onUseSelectedClose,
   onSavePlan,
@@ -1133,6 +1270,7 @@ function PlanLevelControls({
   riskReward: RiskRewardReadout;
   saveState: SaveState;
   selectedCandle: Candle | null;
+  latestCandle: Candle | null;
   onLevelChange: (key: LevelKey, value: string) => void;
   onUseSelectedClose: (key: LevelKey) => void;
   onSavePlan: () => void;
@@ -1142,8 +1280,8 @@ function PlanLevelControls({
 
   return (
     <div className="rounded border border-border bg-bg p-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
               Risk vs Reward Calculator
@@ -1158,31 +1296,54 @@ function PlanLevelControls({
               {practiceDirection} map
             </span>
           </div>
-          <h2 className="font-display mt-2 text-2xl font-semibold leading-none text-ink">
-            Check the math before the plan.
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
-            Already have levels in mind? Enter the entry, target, and stop loss
-            to see the R/R before you turn the idea into a paper plan.
+          <p className="mt-2 max-w-4xl text-sm leading-relaxed text-muted">
+            Enter entry, stop loss, and target to check the R/R before turning
+            the idea into a paper plan.
           </p>
         </div>
-        <div
-          className={`rounded border px-3 py-2 text-right ${
-            riskReward.status === "valid"
-              ? "border-success/50 bg-success/10"
-              : riskReward.status === "invalid"
-              ? "border-danger/50 bg-danger/10"
-              : "border-border bg-panel"
-          }`}
-        >
-          <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
-            R/R
+        <div className="grid gap-2 sm:grid-cols-2 xl:w-[420px]">
+          <div
+            className={`rounded border px-3 py-2 ${
+              riskReward.status === "valid"
+                ? "border-success/50 bg-success/10"
+                : riskReward.status === "invalid"
+                ? "border-danger/50 bg-danger/10"
+                : "border-border bg-panel"
+            }`}
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                R/R
+              </div>
+              <div className="text-xl font-semibold text-ink">
+                {riskReward.label}
+              </div>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 font-mono text-[10px] uppercase text-muted">
+              <span>
+                Risk{" "}
+                <strong className="font-normal text-ink">
+                  {riskReward.risk === null ? "--" : formatPrice(riskReward.risk)}
+                </strong>
+              </span>
+              <span>
+                Reward{" "}
+                <strong className="font-normal text-ink">
+                  {riskReward.reward === null ? "--" : formatPrice(riskReward.reward)}
+                </strong>
+              </span>
+            </div>
           </div>
-          <div className="text-lg font-semibold text-ink">{riskReward.label}</div>
+          <div className="rounded border border-border bg-panel px-3 py-2 font-mono text-[10px] uppercase text-muted">
+            Current price{" "}
+            <span className="text-ink">
+              {latestCandle ? formatPrice(latestCandle.close) : "--"}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-3 grid gap-2 md:grid-cols-3">
+      <div className="mt-3 grid gap-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(170px,220px)]">
         {(Object.keys(LEVEL_STYLES) as LevelKey[]).map((key) => (
           <label key={key} className="rounded border border-border bg-panel p-3">
             <span
@@ -1205,15 +1366,56 @@ function PlanLevelControls({
               onClick={() => onUseSelectedClose(key)}
               className="mt-2 w-full rounded border border-border px-2 py-2 text-xs text-muted hover:border-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {selectedCandle ? "Use selected close" : "Select candle first"}
+              {selectedCandle ? "Use inspected close" : "Inspect candle first"}
             </button>
           </label>
         ))}
+        <div className="flex flex-col justify-between rounded border border-border bg-panel p-3">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+              Save plan
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              Saves the levels for review and journaling. No trade is placed.
+            </p>
+          </div>
+          <div className="mt-3">
+            <SignedIn>
+              <button
+                type="button"
+                onClick={onSavePlan}
+                disabled={saveState.status === "saving"}
+                className="w-full rounded bg-accent px-4 py-2 text-sm font-medium text-bg hover:bg-foxfire-gold disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {saveState.status === "saving" ? "Saving..." : "Save plan"}
+              </button>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button
+                  type="button"
+                  className="w-full rounded border border-accent/60 bg-accent/10 px-4 py-2 text-sm font-medium text-accent hover:border-accent"
+                >
+                  Sign in to save
+                </button>
+              </SignInButton>
+            </SignedOut>
+            {saveState.planId && (
+              <a
+                href={`/plans/${saveState.planId}`}
+                className="mt-2 block text-xs text-accent hover:text-foxfire-gold"
+              >
+                Open saved plan
+              </a>
+            )}
+          </div>
+        </div>
       </div>
 
       <p className="mt-3 rounded border border-border bg-panel p-3 text-xs leading-relaxed text-muted">
-        {riskReward.explanation} This calculator only checks the distance
-        between your levels. It does not tell you whether the setup is good.
+        {riskReward.explanation} This only checks the distance between levels.
+        Setup quality still comes from trend, location, confirmation, and
+        invalidation.
       </p>
       {directionMismatch && (
         <p className="mt-2 rounded border border-amber/45 bg-amber/10 p-3 text-xs leading-relaxed text-muted">
@@ -1223,47 +1425,6 @@ function PlanLevelControls({
         </p>
       )}
 
-      <div className="mt-3 flex flex-col gap-2 rounded border border-border bg-panel p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
-            Save practice plan
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-muted">
-            Saves the levels as an educational plan you can review and journal
-            later. It does not place a trade.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-          <SignedIn>
-            <button
-              type="button"
-              onClick={onSavePlan}
-              disabled={saveState.status === "saving"}
-              className="rounded bg-accent px-4 py-2 text-sm font-medium text-bg hover:bg-foxfire-gold disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              {saveState.status === "saving" ? "Saving..." : "Save plan"}
-            </button>
-          </SignedIn>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button
-                type="button"
-                className="rounded border border-accent/60 bg-accent/10 px-4 py-2 text-sm font-medium text-accent hover:border-accent"
-              >
-                Sign in to save
-              </button>
-            </SignInButton>
-          </SignedOut>
-          {saveState.planId && (
-            <a
-              href={`/plans/${saveState.planId}`}
-              className="text-xs text-accent hover:text-foxfire-gold"
-            >
-              Open saved plan
-            </a>
-          )}
-        </div>
-      </div>
       {saveState.message && (
         <p
           className={`mt-2 rounded border p-2 text-xs leading-relaxed ${
@@ -1276,6 +1437,59 @@ function PlanLevelControls({
         </p>
       )}
     </div>
+  );
+}
+
+function MarketBriefPanel({
+  pair,
+  timeframe,
+  brief,
+}: {
+  pair: LearningChartPair;
+  timeframe: LearningChartTimeframe;
+  brief: MarketBrief;
+}) {
+  const positive = brief.loadedChangePercent >= 0;
+
+  return (
+    <section className="rounded border border-border bg-bg p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+            Market briefing
+          </div>
+          <h2 className="mt-2 text-lg font-semibold text-ink">
+            {pair.symbol} / {timeframe}
+          </h2>
+        </div>
+        <span className="rounded border border-border px-2 py-1 font-mono text-[10px] uppercase text-muted">
+          general info
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 font-mono text-[10px] uppercase text-muted">
+        <Metric label="Close" value={brief.close} />
+        <Metric
+          label="Window move"
+          value={`${positive ? "+" : ""}${brief.loadedChangePercent.toFixed(2)}%`}
+        />
+        <Metric label="Range high" value={brief.rangeHigh} />
+        <Metric label="Range low" value={brief.rangeLow} />
+        <Metric label="ATR move" value={brief.atrPercent} />
+        <Metric label="Rel volume" value={brief.relativeVolume} />
+      </div>
+
+      <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted">
+        {brief.notes.map((note) => (
+          <ReadBlock key={note.label} label={note.label} value={note.value} />
+        ))}
+      </div>
+
+      <p className="mt-4 rounded border border-border bg-panel p-3 text-xs leading-relaxed text-muted">
+        This is market context, not a trade call. Use it to decide what needs
+        proof on the chart.
+      </p>
+    </section>
   );
 }
 
@@ -1300,13 +1514,21 @@ function LearningPanel({
     return (
       <section className="rounded border border-border bg-bg p-4">
         <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
-          Learning panel
+          Candle read
         </div>
-        <p className="mt-2 text-sm text-muted">
+        <h2 className="mt-2 text-lg font-semibold text-ink">
+          Inspect one candle at a time.
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
           {hasCandles
-            ? "Chart is clear. Move over a candle to inspect it when you are ready."
+            ? "Move over a candle to load its open, high, low, close, body, wick, and volume read here."
             : "Waiting for candles..."}
         </p>
+        <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted">
+          <ReadBlock label="First" value="Where did this candle close?" />
+          <ReadBlock label="Second" value="Was the body or wick more important?" />
+          <ReadBlock label="Third" value="Did it happen near a level or in the middle?" />
+        </div>
       </section>
     );
   }
@@ -1441,7 +1663,7 @@ function HistoricalExamples({
           Load candles to see examples from the current pair and timeframe.
         </p>
       ) : (
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {examples.map((example) => (
             <article
               key={`${example.title}-${example.time}`}
@@ -1704,6 +1926,16 @@ type HistoricalExample = {
   lesson: string;
 };
 
+type MarketBrief = {
+  close: string;
+  loadedChangePercent: number;
+  rangeHigh: string;
+  rangeLow: string;
+  atrPercent: string;
+  relativeVolume: string;
+  notes: Array<{ label: string; value: string }>;
+};
+
 type ChartStructureRead = {
   support: number | null;
   resistance: number | null;
@@ -1756,6 +1988,76 @@ function formatStructureLevels(read: ChartStructureRead): string {
   )}. Treat them as zones, not exact magic numbers.`;
 }
 
+function buildMarketBrief(
+  candles: Candle[],
+  latestRead: ReturnType<typeof summarizeLatestPrice>,
+  structure: ChartStructureRead,
+  indicators: TechnicalIndicatorRead
+): MarketBrief {
+  const first = candles[0] ?? null;
+  const last = latestRead.last;
+  const recent = candles.slice(-60);
+  const recentHigh = recent.length
+    ? Math.max(...recent.map((candle) => candle.high))
+    : null;
+  const recentLow = recent.length
+    ? Math.min(...recent.map((candle) => candle.low))
+    : null;
+  const loadedChangePercent =
+    first && last && first.open !== 0
+      ? ((last.close - first.open) / first.open) * 100
+      : 0;
+  const atrPercent =
+    indicators.close && indicators.atr14
+      ? (indicators.atr14 / indicators.close) * 100
+      : null;
+
+  return {
+    close: last ? formatPrice(last.close) : "--",
+    loadedChangePercent,
+    rangeHigh: recentHigh === null ? "--" : formatPrice(recentHigh),
+    rangeLow: recentLow === null ? "--" : formatPrice(recentLow),
+    atrPercent: atrPercent === null ? "--" : `${atrPercent.toFixed(2)}%`,
+    relativeVolume:
+      indicators.relativeVolume20 === null
+        ? "--"
+        : `${indicators.relativeVolume20.toFixed(2)}x`,
+    notes: [
+      {
+        label: "Structure",
+        value: `${trendCopy[structure.trend]} ${locationCopy[structure.location]}`,
+      },
+      {
+        label: "Loaded window",
+        value:
+          loadedChangePercent >= 0
+            ? `Price is up ${loadedChangePercent.toFixed(
+                2
+              )}% across the loaded candles. Check whether the move is already extended before planning a long.`
+            : `Price is down ${Math.abs(loadedChangePercent).toFixed(
+                2
+              )}% across the loaded candles. Check whether shorts are late or support is nearby.`,
+      },
+      {
+        label: "Volatility",
+        value:
+          atrPercent === null
+            ? "ATR needs more candles before it can describe normal movement."
+            : atrPercent >= 3
+            ? "Movement is wide. Stops that are too tight may only measure noise."
+            : atrPercent <= 0.75
+            ? "Movement is compressed. Wait for expansion or a clean level reaction."
+            : "Movement is moderate. Use ATR as a room-to-breathe check.",
+      },
+      {
+        label: "News check",
+        value:
+          "Read the headline tape before saving a plan. Macro, regulation, earnings, and risk headlines can explain sudden volatility.",
+      },
+    ],
+  };
+}
+
 function buildHistoricalExamples(candles: Candle[]): HistoricalExample[] {
   if (candles.length < 10) return [];
   const recent = candles.slice(-120);
@@ -1763,6 +2065,7 @@ function buildHistoricalExamples(candles: Candle[]): HistoricalExample[] {
   const strongestBody = [...recent].sort((a, b) => bodyScore(b) - bodyScore(a))[0];
   const upperReject = [...recent].sort((a, b) => upperWickScore(b) - upperWickScore(a))[0];
   const lowerReject = [...recent].sort((a, b) => lowerWickScore(b) - lowerWickScore(a))[0];
+  const highVolume = [...recent].sort((a, b) => b.volume - a.volume)[0];
 
   return dedupeExamples([
     {
@@ -1785,6 +2088,13 @@ function buildHistoricalExamples(candles: Candle[]): HistoricalExample[] {
       close: lowerReject.close,
       lesson:
         "A larger lower wick means sellers tried lower, then buyers pushed price back.",
+    },
+    {
+      title: "Volume arrival",
+      time: highVolume.time,
+      close: highVolume.close,
+      lesson:
+        "High volume shows participation. Compare it with the candle close before trusting the move.",
     },
   ]);
 }
@@ -1869,7 +2179,11 @@ function buildLearningChartContextNote({
   const selectedTime = selectedCandle
     ? format(new Date(selectedCandle.time * 1000), "MMM d, yyyy h:mm a")
     : "latest loaded candle";
-  const close = selectedCandle ? formatPrice(selectedCandle.close) : "unknown";
+  const close = selectedCandle
+    ? formatPrice(selectedCandle.close)
+    : indicators.close === null
+    ? "unknown"
+    : formatPrice(indicators.close);
   const support =
     structure.support === null ? "unknown" : formatPrice(structure.support);
   const resistance =
@@ -1877,7 +2191,7 @@ function buildLearningChartContextNote({
 
   return [
     `${pair.symbol} on the ${timeframe} chart at ${selectedTime}.`,
-    `Current selected close is ${close}. Recent structure: ${trendCopy[structure.trend]} Location: ${locationCopy[structure.location]}`,
+    `Reference close is ${close}. Recent structure: ${trendCopy[structure.trend]} Location: ${locationCopy[structure.location]}`,
     `Support zone is around ${support}; resistance zone is around ${resistance}.`,
     `Selected practice direction is ${practiceDirection}.`,
     `Indicators: ${indicators.summary}`,

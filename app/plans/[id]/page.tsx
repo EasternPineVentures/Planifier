@@ -38,7 +38,7 @@ export default async function PlanDetail({ params }: Props) {
   const strategyRules = plan.strategyNotes?.rules ?? [];
 
   return (
-    <main className="epv-shell flex min-h-screen flex-col gap-5 !max-w-5xl">
+    <main className="epv-shell epv-rail-shell flex min-h-screen flex-col gap-5 !max-w-5xl">
       <Nav />
       <header className="epv-panel-strong flex flex-wrap items-baseline gap-3 p-5">
         <div>

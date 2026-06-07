@@ -32,7 +32,7 @@ export default async function PlansPage() {
     .limit(100);
 
   return (
-    <main className="epv-shell flex min-h-screen flex-col gap-5 !max-w-5xl">
+    <main className="epv-shell epv-rail-shell flex min-h-screen flex-col gap-5 !max-w-5xl">
       <Nav />
       <header className="epv-panel-strong p-5">
         <div className="flex items-start justify-between gap-3">

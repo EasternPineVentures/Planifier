@@ -15,7 +15,7 @@ export default async function PlanDraftPage() {
   if (!userId) redirect("/sign-in");
 
   return (
-    <main className="epv-shell flex min-h-screen flex-col gap-5 !max-w-[1180px]">
+    <main className="epv-shell epv-rail-shell flex min-h-screen flex-col gap-5 !max-w-[1180px]">
       <Nav />
       <PlanDraftClient />
       <footer className="border-t border-border pt-3 text-[11px] leading-relaxed text-muted">

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ChartPage() {
   return (
-    <main className="epv-shell flex min-h-screen flex-col gap-5 !max-w-[1720px]">
+    <main className="epv-shell epv-rail-shell flex min-h-screen flex-col gap-5 !max-w-[1720px]">
       <Nav />
       <ChartLabClient />
       <footer className="border-t border-border pt-3 text-[11px] leading-relaxed text-muted">

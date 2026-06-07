@@ -38,6 +38,8 @@ describe("learning chart helpers", () => {
   it("finds supported Kraken learning pairs", () => {
     expect(findLearningChartPair("BTC/USD")?.krakenPair).toBe("XBTUSD");
     expect(findLearningChartPair("eth-usd")?.symbol).toBe("ETH/USD");
+    expect(findLearningChartPair("doge-usd")?.krakenPair).toBe("XDGUSD");
+    expect(findLearningChartPair("LINK/USD")?.label).toContain("Chainlink");
     expect(findLearningChartPair("AAPL")).toBeNull();
   });
 

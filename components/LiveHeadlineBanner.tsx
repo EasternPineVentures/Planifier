@@ -52,7 +52,7 @@ export default function LiveHeadlineBanner() {
   if (items.length === 0) {
     return (
       <div className="border-b border-border bg-panel/90 px-3 py-2 text-[11px] text-muted">
-        <div className="mx-auto flex max-w-7xl items-center gap-3">
+        <div className="epv-headline-inner flex items-center gap-3">
           <span className="epv-kicker !text-[10px]">
             Live context
           </span>
@@ -73,7 +73,7 @@ export default function LiveHeadlineBanner() {
       aria-label="Live market headline context"
       className="overflow-hidden border-b border-border bg-panel/90 shadow-[inset_0_-1px_0_rgba(242,184,75,0.12)]"
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 py-2">
+      <div className="epv-headline-inner flex items-center gap-3 px-3 py-2">
         <div className="epv-kicker shrink-0 !text-[10px]">
           Live context
         </div>

@@ -14,6 +14,11 @@ export const LEARNING_CHART_PAIRS: LearningChartPair[] = [
   { symbol: "ETH/USD", label: "Ethereum / US Dollar", krakenPair: "ETHUSD" },
   { symbol: "SOL/USD", label: "Solana / US Dollar", krakenPair: "SOLUSD" },
   { symbol: "XRP/USD", label: "XRP / US Dollar", krakenPair: "XRPUSD" },
+  { symbol: "ADA/USD", label: "Cardano / US Dollar", krakenPair: "ADAUSD" },
+  { symbol: "DOGE/USD", label: "Dogecoin / US Dollar", krakenPair: "XDGUSD" },
+  { symbol: "DOT/USD", label: "Polkadot / US Dollar", krakenPair: "DOTUSD" },
+  { symbol: "LTC/USD", label: "Litecoin / US Dollar", krakenPair: "LTCUSD" },
+  { symbol: "LINK/USD", label: "Chainlink / US Dollar", krakenPair: "LINKUSD" },
 ];
 
 export const DEFAULT_LEARNING_PAIR = LEARNING_CHART_PAIRS[0];
