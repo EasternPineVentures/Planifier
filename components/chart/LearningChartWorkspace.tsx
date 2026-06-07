@@ -46,6 +46,7 @@ import {
   summarizeLatestPrice,
   type LearningChartPair,
   type LearningChartTimeframe,
+  type LearningMarketOverviewPayload,
   type LearningOhlcPayload,
   type PracticeLevels,
   type RiskRewardReadout,
@@ -98,6 +99,12 @@ export default function LearningChartWorkspace({
   const [beginnerMode, setBeginnerMode] = useState(true);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [marketOverview, setMarketOverview] =
+    useState<LearningMarketOverviewPayload | null>(null);
+  const [overviewState, setOverviewState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [overviewError, setOverviewError] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
     "loading"
   );
@@ -240,6 +247,43 @@ export default function LearningChartWorkspace({
     [pair, timeframe]
   );
 
+  const loadMarketOverview = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!silent) setOverviewState("loading");
+      setOverviewError(null);
+
+      try {
+        const params = new URLSearchParams({ timeframe });
+        const response = await fetch(`/api/market/overview?${params}`, {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as
+          | LearningMarketOverviewPayload
+          | { error?: string; message?: string };
+
+        if (!response.ok || !("items" in payload)) {
+          const problem = payload as { error?: string; message?: string };
+          throw new Error(
+            problem.message ??
+              problem.error ??
+              "Market overview was not available."
+          );
+        }
+
+        setMarketOverview(payload);
+        setOverviewState("ready");
+      } catch (caught) {
+        setOverviewState("error");
+        setOverviewError(
+          caught instanceof Error
+            ? caught.message
+            : "Market overview could not load."
+        );
+      }
+    },
+    [timeframe]
+  );
+
   useEffect(() => {
     setCandles([]);
     setGeneratedAt(null);
@@ -277,6 +321,14 @@ export default function LearningChartWorkspace({
     }, POLL_MS);
     return () => window.clearInterval(id);
   }, [loadCandles]);
+
+  useEffect(() => {
+    void loadMarketOverview();
+    const id = window.setInterval(() => {
+      void loadMarketOverview({ silent: true });
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [loadMarketOverview]);
 
   function changePracticeDirection(direction: PracticeDirection) {
     setPracticeDirection(direction);
@@ -406,18 +458,6 @@ export default function LearningChartWorkspace({
         )}
 
         <div className="space-y-4">
-          <PlanLevelControls
-            practiceDirection={practiceDirection}
-            levels={levels}
-            riskReward={riskReward}
-            saveState={saveState}
-            selectedCandle={selectedCandle}
-            latestCandle={latestRead.last}
-            onLevelChange={updateLevel}
-            onUseSelectedClose={useSelectedCloseFor}
-            onSavePlan={() => void saveChartPlan()}
-          />
-
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
             <div className="min-w-0 space-y-4">
               <div className="overflow-hidden rounded border border-border bg-bg">
@@ -464,6 +504,25 @@ export default function LearningChartWorkspace({
             </div>
 
             <aside className="grid content-start gap-4 lg:grid-cols-2 xl:grid-cols-1">
+              <PlanLevelControls
+                compact
+                practiceDirection={practiceDirection}
+                levels={levels}
+                riskReward={riskReward}
+                saveState={saveState}
+                selectedCandle={selectedCandle}
+                latestCandle={latestRead.last}
+                onLevelChange={updateLevel}
+                onUseSelectedClose={useSelectedCloseFor}
+                onSavePlan={() => void saveChartPlan()}
+              />
+              <MarketPulsePanel
+                overview={marketOverview}
+                state={overviewState}
+                error={overviewError}
+                selectedSymbol={selectedPair.symbol}
+                onSelectPair={setPair}
+              />
               <MarketBriefPanel
                 pair={selectedPair}
                 timeframe={timeframe}
@@ -640,6 +699,147 @@ function ChartControls({
         {selectedPair.label} on Kraken public candles. Start with the close,
         then compare the body, wicks, level location, and volume.
       </p>
+    </div>
+  );
+}
+
+function MarketPulsePanel({
+  overview,
+  state,
+  error,
+  selectedSymbol,
+  onSelectPair,
+}: {
+  overview: LearningMarketOverviewPayload | null;
+  state: "loading" | "ready" | "error";
+  error: string | null;
+  selectedSymbol: string;
+  onSelectPair: (symbol: string) => void;
+}) {
+  const items = overview?.items ?? [];
+  const sorted = [...items].sort((a, b) => b.changePercent - a.changePercent);
+  const strongest = sorted[0] ?? null;
+  const weakest = sorted.at(-1) ?? null;
+  const greenCount = items.filter((item) => item.changePercent >= 0).length;
+  const redCount = items.length - greenCount;
+  const timeframeLabel = overview?.timeframe.toUpperCase() ?? "selected";
+
+  return (
+    <section className="rounded border border-border bg-bg p-3">
+      <div className="flex flex-col gap-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+            Market pulse
+          </div>
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted">
+            A general scan of supported public Kraken pairs. Use it like a
+            finance-site watchlist before focusing on one chart. Percentages
+            show the loaded {timeframeLabel} window.
+          </p>
+        </div>
+        <div className="grid gap-2 font-mono text-[10px] uppercase text-muted sm:grid-cols-3 xl:grid-cols-1">
+          <PulseStat
+            label="Breadth"
+            value={items.length ? `${greenCount} up / ${redCount} down` : "--"}
+          />
+          <PulseStat
+            label="Best window"
+            value={
+              strongest
+                ? `${strongest.symbol} ${formatSignedPercent(
+                    strongest.changePercent
+                  )}`
+                : "--"
+            }
+          />
+          <PulseStat
+            label="Worst window"
+            value={
+              weakest
+                ? `${weakest.symbol} ${formatSignedPercent(
+                    weakest.changePercent
+                  )}`
+                : "--"
+            }
+          />
+        </div>
+      </div>
+
+      {state === "error" && (
+        <p className="mt-3 rounded border border-danger/45 bg-danger/10 p-3 text-xs text-danger">
+          {error ?? "Market pulse could not load."}
+        </p>
+      )}
+
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {state === "loading" && items.length === 0
+          ? Array.from({ length: 5 }, (_, index) => (
+              <div
+                key={index}
+                className="h-[92px] min-w-[230px] animate-pulse rounded border border-border bg-panel"
+              />
+            ))
+          : items.map((item) => {
+              const active = item.symbol === selectedSymbol;
+              const positive = item.changePercent >= 0;
+
+              return (
+                <button
+                  key={item.symbol}
+                  type="button"
+                  onClick={() => onSelectPair(item.symbol)}
+                  className={`min-w-[230px] rounded border p-3 text-left transition-colors ${
+                    active
+                      ? "border-accent bg-accent/12"
+                      : "border-border bg-panel hover:border-muted"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-mono text-sm font-semibold text-ink">
+                        {item.symbol}
+                      </div>
+                      <div className="mt-1 truncate text-[11px] text-muted">
+                        {item.label}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono text-[9px] uppercase text-muted">
+                        Window move
+                      </div>
+                      <span
+                        className={`font-mono text-xs ${
+                          positive ? "text-success" : "text-danger"
+                        }`}
+                      >
+                        {formatSignedPercent(item.changePercent)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] uppercase text-muted">
+                    <span className="rounded border border-border px-2 py-1">
+                      {formatPrice(item.lastClose)}
+                    </span>
+                    <span className="rounded border border-border px-2 py-1">
+                      {item.trendLabel}
+                    </span>
+                    <span className="rounded border border-border px-2 py-1">
+                      {item.rangePosition}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+      </div>
+    </section>
+  );
+}
+
+function PulseStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-border bg-panel px-3 py-2">
+      <div>{label}</div>
+      <div className="mt-1 truncate text-ink">{value}</div>
     </div>
   );
 }
@@ -1255,6 +1455,7 @@ function IndicatorReadPanel({
 }
 
 function PlanLevelControls({
+  compact = false,
   practiceDirection,
   levels,
   riskReward,
@@ -1265,6 +1466,7 @@ function PlanLevelControls({
   onUseSelectedClose,
   onSavePlan,
 }: {
+  compact?: boolean;
   practiceDirection: PracticeDirection;
   levels: PracticeLevels;
   riskReward: RiskRewardReadout;
@@ -1280,7 +1482,11 @@ function PlanLevelControls({
 
   return (
     <div className="rounded border border-border bg-bg p-3">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div
+        className={`flex flex-col gap-3 ${
+          compact ? "" : "xl:flex-row xl:items-center xl:justify-between"
+        }`}
+      >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
@@ -1301,7 +1507,11 @@ function PlanLevelControls({
             the idea into a paper plan.
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 xl:w-[420px]">
+        <div
+          className={`grid gap-2 ${
+            compact ? "" : "sm:grid-cols-2 xl:w-[420px]"
+          }`}
+        >
           <div
             className={`rounded border px-3 py-2 ${
               riskReward.status === "valid"
@@ -1343,34 +1553,54 @@ function PlanLevelControls({
         </div>
       </div>
 
-      <div className="mt-3 grid gap-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(170px,220px)]">
-        {(Object.keys(LEVEL_STYLES) as LevelKey[]).map((key) => (
-          <label key={key} className="rounded border border-border bg-panel p-3">
-            <span
-              className="block font-mono text-[10px] uppercase tracking-wider"
-              style={{ color: LEVEL_STYLES[key].color }}
-            >
-              {LEVEL_STYLES[key].label}
-            </span>
-            <input
-              type="number"
-              value={levels[key] ?? ""}
-              onChange={(event) => onLevelChange(key, event.target.value)}
-              className="mt-2 w-full rounded border border-border bg-bg px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
-              placeholder="price"
-              step="0.01"
-            />
-            <button
-              type="button"
-              disabled={!selectedCandle}
-              onClick={() => onUseSelectedClose(key)}
-              className="mt-2 w-full rounded border border-border px-2 py-2 text-xs text-muted hover:border-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {selectedCandle ? "Use inspected close" : "Inspect candle first"}
-            </button>
-          </label>
-        ))}
-        <div className="flex flex-col justify-between rounded border border-border bg-panel p-3">
+      <div
+        className={`mt-3 grid gap-2 ${
+          compact
+            ? "sm:grid-cols-3"
+            : "lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(170px,220px)]"
+        }`}
+      >
+        {(Object.keys(LEVEL_STYLES) as LevelKey[]).map((key) => {
+          const useCloseLabel = compact
+            ? selectedCandle
+              ? "Use close"
+              : "Inspect first"
+            : selectedCandle
+            ? "Use inspected close"
+            : "Inspect candle first";
+
+          return (
+            <label key={key} className="rounded border border-border bg-panel p-3">
+              <span
+                className="block font-mono text-[10px] uppercase tracking-wider"
+                style={{ color: LEVEL_STYLES[key].color }}
+              >
+                {LEVEL_STYLES[key].label}
+              </span>
+              <input
+                type="number"
+                value={levels[key] ?? ""}
+                onChange={(event) => onLevelChange(key, event.target.value)}
+                className="mt-2 w-full rounded border border-border bg-bg px-3 py-2 font-mono text-sm text-ink outline-none focus:border-accent"
+                placeholder="price"
+                step="0.01"
+              />
+              <button
+                type="button"
+                disabled={!selectedCandle}
+                onClick={() => onUseSelectedClose(key)}
+                className="mt-2 w-full rounded border border-border px-2 py-2 text-xs text-muted hover:border-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {useCloseLabel}
+              </button>
+            </label>
+          );
+        })}
+        <div
+          className={`flex flex-col justify-between rounded border border-border bg-panel p-3 ${
+            compact ? "sm:col-span-3" : ""
+          }`}
+        >
           <div>
             <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
               Save plan
@@ -1412,11 +1642,13 @@ function PlanLevelControls({
         </div>
       </div>
 
-      <p className="mt-3 rounded border border-border bg-panel p-3 text-xs leading-relaxed text-muted">
-        {riskReward.explanation} This only checks the distance between levels.
-        Setup quality still comes from trend, location, confirmation, and
-        invalidation.
-      </p>
+      {(!compact || riskReward.status !== "incomplete") && (
+        <p className="mt-3 rounded border border-border bg-panel p-3 text-xs leading-relaxed text-muted">
+          {riskReward.explanation} This only checks the distance between levels.
+          Setup quality still comes from trend, location, confirmation, and
+          invalidation.
+        </p>
+      )}
       {directionMismatch && (
         <p className="mt-2 rounded border border-amber/45 bg-amber/10 p-3 text-xs leading-relaxed text-muted">
           The selected map is {practiceDirection}, but the current target and
@@ -2138,6 +2370,10 @@ function lowerWickScore(candle: Candle): number {
 function formatSigned(value: number): string {
   const prefix = value > 0 ? "+" : "";
   return `${prefix}${value.toFixed(2)}`;
+}
+
+function formatSignedPercent(value: number): string {
+  return `${formatSigned(value)}%`;
 }
 
 function toLineData(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildTradingViewChartUrl,
+  buildLearningMarketOverviewPayload,
   calculateRiskReward,
   explainLearningCandle,
   findLearningChartPair,
@@ -100,5 +101,29 @@ describe("learning chart helpers", () => {
     expect(url.searchParams.get("symbol")).toBe("KRAKEN:BTCUSD");
     expect(url.searchParams.get("interval")).toBe("240");
     expect(url.searchParams.get("time_from")).toBe(String(greenCandle.time));
+  });
+
+  it("builds an educational market overview payload", () => {
+    const payload = buildLearningMarketOverviewPayload({
+      timeframe: "4h",
+      items: [
+        {
+          symbol: "BTC/USD",
+          label: "Bitcoin / US Dollar",
+          lastClose: 100,
+          changePercent: 2.5,
+          support: 90,
+          resistance: 110,
+          trendLabel: "uptrend",
+          rangePosition: "middle of range",
+          candleCount: 120,
+        },
+      ],
+    });
+
+    expect(payload.source).toBe("kraken_public_ohlc");
+    expect(payload.timeframe).toBe("4h");
+    expect(payload.educationalOnly).toBe(true);
+    expect(payload.items[0].symbol).toBe("BTC/USD");
   });
 });

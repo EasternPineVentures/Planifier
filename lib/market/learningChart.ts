@@ -39,6 +39,26 @@ export type LearningOhlcPayload = {
   educationalOnly: true;
 };
 
+export type LearningMarketOverviewItem = {
+  symbol: string;
+  label: string;
+  lastClose: number;
+  changePercent: number;
+  support: number;
+  resistance: number;
+  trendLabel: "uptrend" | "downtrend" | "sideways";
+  rangePosition: "near support" | "middle of range" | "near resistance";
+  candleCount: number;
+};
+
+export type LearningMarketOverviewPayload = {
+  source: "kraken_public_ohlc";
+  timeframe: LearningChartTimeframe;
+  generatedAt: string;
+  items: LearningMarketOverviewItem[];
+  educationalOnly: true;
+};
+
 export type PracticeLevels = {
   entry: number | null;
   stop: number | null;
@@ -104,6 +124,22 @@ export function buildLearningOhlcPayload({
       label: "TradingView Lightweight Charts",
       url: "https://www.tradingview.com/",
     },
+    educationalOnly: true,
+  };
+}
+
+export function buildLearningMarketOverviewPayload({
+  timeframe,
+  items,
+}: {
+  timeframe: LearningChartTimeframe;
+  items: LearningMarketOverviewItem[];
+}): LearningMarketOverviewPayload {
+  return {
+    source: "kraken_public_ohlc",
+    timeframe,
+    generatedAt: new Date().toISOString(),
+    items,
     educationalOnly: true,
   };
 }
